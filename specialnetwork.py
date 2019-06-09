@@ -1,12 +1,7 @@
 
-# coding: utf-8
-
-# In[1]:
-
-
 import tensorflow as tf
-# tfe = tf.contrib.eager
-# tf.enable_eager_execution()
+#tfe = tf.contrib.eager
+#tf.enable_eager_execution()
 
 from tensorflow.keras import layers
 
@@ -17,51 +12,38 @@ import time
 import numpy as np
 import glob
 import matplotlib.pyplot as plt
-#import PIL
 import imageio
 from IPython import display
 import pathlib
 AUTOTUNE=tf.data.experimental.AUTOTUNE
 
+#folder to save weights and images
 
-# In[12]:
-
-
-K.set_floatx('float16')
+TRAINING_DIR='train1'
 
 
-# In[3]:
+##input the celeb faces directory relative to the cwd
+DIR='img_align_celeba'
 
-
-dir=pathlib.Path.cwd()/'celebfaces/'
-
-
-# In[4]:
+dir=pathlib.Path.cwd()/DIR
 
 
 all_image_paths=list(dir.glob('*'))
 all_image_paths = [str(path) for path in all_image_paths]
 image_count = len(all_image_paths)
-image_count
 
 train_paths=all_image_paths[:-20000]
 test_paths=all_image_paths[-20000:]
 
 
-# In[5]:
-
-
 all_image_paths[0]
-
-
-# In[9]:
 
 
 def preprocess_image(image):
   image = tf.image.decode_jpeg(image, channels=3)
   image = tf.image.resize(image, [192, 192])
   image /= 255.0  # normalize to [0,1] range
-  image = tf.image.convert_image_dtype(image, tf.float16)
+  #image = tf.image.convert_image_dtype(image, tf.float16)
 
   return image
 
@@ -79,17 +61,12 @@ def from_path_to_tensor(paths, batch_size):
     return ds
 
 
-# In[10]:
-
 
 BATCH_SIZE = 128
-BUFFER_SIZE=image_count//9
+#BUFFER_SIZE=image_count//9
 
 train_set= from_path_to_tensor(train_paths, BATCH_SIZE)
 test_set=from_path_to_tensor(test_paths, BATCH_SIZE)
-
-
-# In[13]:
 
 
 class CVAE(tf.keras.Model):
@@ -100,11 +77,11 @@ class CVAE(tf.keras.Model):
       [
           tf.keras.layers.InputLayer(input_shape=(192, 192, 3)),
           tf.keras.layers.Conv2D(
+              filters=64, kernel_size=3, strides=(2, 2), activation='relu'),
+          tf.keras.layers.Conv2D(
               filters=32, kernel_size=3, strides=(2, 2), activation='relu'),
           tf.keras.layers.Conv2D(
               filters=16, kernel_size=3, strides=(2, 2), activation='relu'),
-          tf.keras.layers.Conv2D(
-              filters=8, kernel_size=3, strides=(2, 2), activation='relu'),
           tf.keras.layers.Flatten(),
           # No activation
           tf.keras.layers.Dense(latent_dim + latent_dim),
@@ -117,19 +94,19 @@ class CVAE(tf.keras.Model):
           tf.keras.layers.Dense(units=24*24*32, activation=tf.nn.relu),
           tf.keras.layers.Reshape(target_shape=(24, 24, 32)),
           tf.keras.layers.Conv2DTranspose(
-              filters=4,
-              kernel_size=3,
-              strides=(2, 2),
-              padding="SAME",
-              activation='relu'),
-          tf.keras.layers.Conv2DTranspose(
-              filters=8,
-              kernel_size=3,
-              strides=(2, 2),
-              padding="SAME",
-              activation='relu'),
-          tf.keras.layers.Conv2DTranspose(
               filters=16,
+              kernel_size=3,
+              strides=(2, 2),
+              padding="SAME",
+              activation='relu'),
+          tf.keras.layers.Conv2DTranspose(
+              filters=32,
+              kernel_size=3,
+              strides=(2, 2),
+              padding="SAME",
+              activation='relu'),
+          tf.keras.layers.Conv2DTranspose(
+              filters=64,
               kernel_size=3,
               strides=(2, 2),
               padding="SAME",
@@ -157,9 +134,6 @@ class CVAE(tf.keras.Model):
     return self.generative_net(z)
 
 
-# In[14]:
-
-
 optimizer=tf.keras.optimizers.Adam(1e-4)
 def log_normal_pdf(sample, mean, logvar, raxis=1):
   log2pi = tf.math.log(2. * np.pi)
@@ -177,7 +151,7 @@ def compute_loss(model, x):
     K.batch_flatten(x_r)), axis=-1)
 
     # Regularization term (KL divergence)
-    kl_loss = -0.5 * K.sum(1 + logvar                              - K.square(mean)                              - K.exp(logvar), axis=-1)
+    kl_loss = -0.5 * K.sum(1 + logvar - K.square(mean) - K.exp(logvar), axis=-1)
     
     # Average over mini-batch
     return K.mean(rc_loss + kl_loss)
@@ -191,12 +165,8 @@ def compute_gradients(model, x):
 def apply_gradients(optimizer, gradients, variables):
      optimizer.apply_gradients(zip(gradients, variables))
     
-
-
-# In[15]:
-
-
-epochs = 1
+    
+epochs = 10
 latent_dim = 50
 num_examples_to_generate = 4
 
@@ -207,10 +177,7 @@ random_vector_for_generation = tf.random.normal(
 model = CVAE(latent_dim)
 
 
-# In[16]:
-
-
-def generate_and_save_images(model, epoch, test_input):
+def generate_and_save_images(model, epoch, batch, test_input):
   predictions = model.sample(test_input)
   fig = plt.figure(figsize=(2,2))
 
@@ -220,11 +187,9 @@ def generate_and_save_images(model, epoch, test_input):
       plt.axis('off')
 
   # tight_layout minimizes the overlap between 2 sub-plots
-  plt.savefig('image_at_epoch_{:04d}.png'.format(epoch))
-  plt.show()
+  plt.savefig('TRAINING_DIR/image_at_epoch_{:04d}_batch_{:05d}.png'.format(epoch, batch))
+  #plt.show()
 
-
-# In[18]:
 
 
 #generate_and_save_images(model, 0, random_vector_for_generation)
@@ -237,45 +202,22 @@ for epoch in range(1, epochs + 1):
     gradients, loss = compute_gradients(model, batch)
     apply_gradients(optimizer, gradients, model.trainable_variables)
     if i % 10 ==0:
-        print('Batch ',i,', done.')
+      print('Batch',i,',done.', 'avg. batch time: {}s'.format((time.time()-start_time)/i))
+    if i % 1000 ==0:
+      generate_and_save_images(model, epoch, i, random_vector_for_generation)
+      model.save_weights(TRAINING_DIR+'/modelweights_epoch{:03d}_batch{:05d}.h5'.format(eopch, i))
   end_time = time.time()
 
   if epoch % 1 == 0:
     loss = tf.keras.metrics.Mean()
     for test_x in test_set:
-      loss(compute_loss(model, test_x))
+        loss(compute_loss(model, test_x))
     elbo = -loss.result()
-    display.clear_output(wait=False)
+    #display.clear_output(wait=False)
     print('Epoch: {}, Test set ELBO: {}, '
             'time elapse for current epoch {}'.format(epoch,
                                                         elbo,
                                                         end_time - start_time))
 
     generate_and_save_images(
-            model, epoch, random_vector_for_generation)
-
-
-# In[36]:
-
-
-generate_and_save_images(model, 0 ,random_vector_for_generation)
-
-
-# In[16]:
-
-
-
-model.load_weights('modelweights_epoch001_batch3000.h5')
-
-
-# In[17]:
-
-
-generate_and_save_images(model, 1,random_vector_for_generation)
-
-
-# In[8]:
-
-
-train_set
-
+            model, epoch,0, random_vector_for_generation)
