@@ -53,8 +53,8 @@ def load_and_preprocess_image(path):
 
 def from_path_to_tensor(paths, batch_size):
     path_ds=tf.data.Dataset.from_tensor_slices(paths)
-    image_ds=path_ds.map(load_and_preprocess_image, num_parallel_calls=1)
-    ds=image_ds.repeat()
+    ds=path_ds.map(load_and_preprocess_image, num_parallel_calls=1)
+    #ds=ds.repeat()
     ds=ds.batch(batch_size)
     ds=ds.prefetch(buffer_size=1)
     return ds
@@ -193,6 +193,10 @@ def generate_and_save_images(model, epoch, batch, test_input):
 
 #generate_and_save_images(model, 0, random_vector_for_generation)
 
+print_interval=100
+
+save_interval=500
+
 for epoch in range(1, epochs + 1):
   start_time = time.time()
   batch_start_time=start_time
@@ -201,24 +205,21 @@ for epoch in range(1, epochs + 1):
     i+=1
     gradients, loss = compute_gradients(model, batch)
     apply_gradients(optimizer, gradients, model.trainable_variables)
-    if i % 10 ==0:
-      print('Batch',i,'done.', 'avg. batch time: {}s'.format((time.time()-batch_start_time)/10))
+    if i % print_interval ==0:
+      print('Batch',i,'done.', 'avg. batch time: {}s'.format((time.time()-batch_start_time)/print_interval))
       batch_start_time=time.time()
-    if i % 100 ==0:
+    if i % save_interval ==0:
       generate_and_save_images(model, epoch, i, random_vector_for_generation)
       model.save_weights(TRAINING_DIR+'/modelweights_epoch{:03d}_batch{:05d}.h5'.format(epoch, i))
   end_time = time.time()
-
+'''
   if epoch % 1 == 0:
-    loss = tf.keras.metrics.Mean()
+    loss = tf.metrics.mean()
     for test_x in test_set:
         loss(compute_loss(model, test_x))
     elbo = -loss.result()
     #display.clear_output(wait=False)
-    print('Epoch: {}, Test set ELBO: {}, '
-            'time elapse for current epoch {}'.format(epoch,
-                                                        elbo,
-                                                        end_time - start_time))
+    print('Epoch: {}, Test set ELBO: {}, ','time elapse for current epoch {}'.format(epoch,elbo,end_time - start_time))
 
     generate_and_save_images(
-            model, epoch,0, random_vector_for_generation)
+            model, epoch,0, random_vector_for_generation)'''
