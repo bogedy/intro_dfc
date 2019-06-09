@@ -212,12 +212,14 @@ for epoch in range(1, epochs + 1):
       generate_and_save_images(model, epoch, i, random_vector_for_generation)
       model.save_weights(TRAINING_DIR+'/modelweights_epoch{:03d}_batch{:05d}.h5'.format(epoch, i))
   end_time = time.time()
-'''
+
   if epoch % 1 == 0:
-    loss = tf.metrics.mean()
+    loss = tf.zeros(20000//BATCH_SIZE+1)
+    j=0
     for test_x in test_set:
-        loss(compute_loss(model, test_x))
-    elbo = -loss.result()
+        loss[j]=compute_loss(model, test_x))
+        j+=1
+    elbo = -np.mean(loss)
     #display.clear_output(wait=False)
     print('Epoch: {}, Test set ELBO: {}, ','time elapse for current epoch {}'.format(epoch,elbo,end_time - start_time))
 
