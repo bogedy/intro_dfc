@@ -1,7 +1,7 @@
 
 import tensorflow as tf
-#tfe = tf.contrib.eager
-#tf.enable_eager_execution()
+tfe = tf.contrib.eager
+tf.enable_eager_execution()
 
 from tensorflow.keras import layers
 
@@ -13,9 +13,8 @@ import numpy as np
 import glob
 import matplotlib.pyplot as plt
 import imageio
-from IPython import display
 import pathlib
-AUTOTUNE=tf.data.experimental.AUTOTUNE
+#AUTOTUNE=tf.data.experimental.AUTOTUNE
 
 #folder to save weights and images
 
@@ -23,7 +22,7 @@ TRAINING_DIR='train1'
 
 
 ##input the celeb faces directory relative to the cwd
-DIR='img_align_celeba'
+DIR='../img_align_celeba'
 
 dir=pathlib.Path.cwd()/DIR
 
@@ -41,7 +40,7 @@ all_image_paths[0]
 
 def preprocess_image(image):
   image = tf.image.decode_jpeg(image, channels=3)
-  image = tf.image.resize(image, [192, 192])
+  image = tf.image.resize_images(image, [192, 192])
   image /= 255.0  # normalize to [0,1] range
   #image = tf.image.convert_image_dtype(image, tf.float16)
 
@@ -54,10 +53,10 @@ def load_and_preprocess_image(path):
 
 def from_path_to_tensor(paths, batch_size):
     path_ds=tf.data.Dataset.from_tensor_slices(paths)
-    image_ds=path_ds.map(load_and_preprocess_image, num_parallel_calls=AUTOTUNE)
+    image_ds=path_ds.map(load_and_preprocess_image, num_parallel_calls=1)
     ds=image_ds.repeat()
     ds=ds.batch(batch_size)
-    ds=ds.prefetch(buffer_size=AUTOTUNE)
+    ds=ds.prefetch(buffer_size=1)
     return ds
 
 
@@ -134,7 +133,7 @@ class CVAE(tf.keras.Model):
     return self.generative_net(z)
 
 
-optimizer=tf.keras.optimizers.Adam(1e-4)
+optimizer=tf.train.AdamOptimizer(1e-4)
 def log_normal_pdf(sample, mean, logvar, raxis=1):
   log2pi = tf.math.log(2. * np.pi)
   return tf.reduce_sum(
@@ -187,7 +186,7 @@ def generate_and_save_images(model, epoch, batch, test_input):
       plt.axis('off')
 
   # tight_layout minimizes the overlap between 2 sub-plots
-  plt.savefig('TRAINING_DIR/image_at_epoch_{:04d}_batch_{:05d}.png'.format(epoch, batch))
+  plt.savefig(TRAINING_DIR+'/image_at_epoch_{:04d}_batch_{:05d}.png'.format(epoch, batch))
   #plt.show()
 
 
@@ -196,16 +195,18 @@ def generate_and_save_images(model, epoch, batch, test_input):
 
 for epoch in range(1, epochs + 1):
   start_time = time.time()
+  batch_start_time=start_time
   i=0
   for batch in train_set:
     i+=1
     gradients, loss = compute_gradients(model, batch)
     apply_gradients(optimizer, gradients, model.trainable_variables)
     if i % 10 ==0:
-      print('Batch',i,',done.', 'avg. batch time: {}s'.format((time.time()-start_time)/i))
-    if i % 1000 ==0:
+      print('Batch',i,'done.', 'avg. batch time: {}s'.format((time.time()-batch_start_time)/10))
+      batch_start_time=time.time()
+    if i % 100 ==0:
       generate_and_save_images(model, epoch, i, random_vector_for_generation)
-      model.save_weights(TRAINING_DIR+'/modelweights_epoch{:03d}_batch{:05d}.h5'.format(eopch, i))
+      model.save_weights(TRAINING_DIR+'/modelweights_epoch{:03d}_batch{:05d}.h5'.format(epoch, i))
   end_time = time.time()
 
   if epoch % 1 == 0:
