@@ -1,10 +1,6 @@
 
 import tensorflow as tf
-tfe = tf.contrib.eager
-tf.enable_eager_execution()
 from tensorflow.keras import layers
-
-from tensorflow.keras import backend as K
 
 import os
 import time
@@ -14,7 +10,6 @@ import matplotlib.pyplot as plt
 import imageio
 import pathlib
 #AUTOTUNE=tf.data.experimental.AUTOTUNE
-
 
 def get_paths(directory):
     dir=pathlib.Path.cwd()/directory
@@ -33,7 +28,6 @@ def load_and_preprocess_image(path):
     image = tf.io.read_file(path)
     return preprocess_image(image)
 
-
 def from_path_to_tensor(paths, batch_size):
     path_ds=tf.data.Dataset.from_tensor_slices(paths)
     ds=path_ds.map(load_and_preprocess_image, num_parallel_calls=1)
@@ -41,7 +35,6 @@ def from_path_to_tensor(paths, batch_size):
     ds=ds.batch(batch_size)
     ds=ds.prefetch(buffer_size=1)
     return ds
-
 
 
 class VAE(tf.keras.Model):
@@ -122,20 +115,21 @@ def log_normal_pdf(sample, mean, logvar, raxis=1):
         -.5 * ((sample - mean) ** 2. * tf.exp(-logvar) + logvar + log2pi),
         axis=raxis)
 
+mse=tf.losses.MeanSquaredError()
+
 def compute_loss(model, x):
     mean, logvar = model.encode(x)
     z = model.reparameterize(mean, logvar)
     x_r = model.decode(z)
 
-    rc_loss = K.sum(K.binary_crossentropy(
-    K.batch_flatten(x),
-    K.batch_flatten(x_r)), axis=-1)
+    # Reconstruction loss
+    rc_loss = mse(x, x_r)
 
     # Regularization term (KL divergence)
-    kl_loss = -0.5 * K.sum(1 + logvar - K.square(mean) - K.exp(logvar), axis=-1)
+    kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
 
     # Average over mini-batch
-    return K.mean(rc_loss + kl_loss)
+    return tf.reduce_mean(rc_loss + kl_loss)
 
 #generate_and_save_images(model, 0, random_vector_for_generation)
 
@@ -155,25 +149,36 @@ def generate_and_save_images(model, epoch, batch, test_input):
 
 def train_step(batch, model, optimizer):
     with tf.GradientTape() as tape:
-        loss = compute_loss(model, x)
+        loss = compute_loss(model, batch)
     gradients=tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
     return loss
 
+train_summary_writer = tf.summary.create_file_writer(TRAINING_DIR+'/summaries/train')
+test_summary_writer = tf.summary.create_file_writer(TRAINING_DIR+'/summaries/test')
 
-def train_vae(model, optimizer, epochs, print_interval, save_intevral):
+
+#todo: write train function and separate test function. I guess there's no
+#reason to have this in a function?
+
+@tf.function
+def train_vae(model, optimizer, epochs, dataset, save_interval, log_freq=10):
+    summary_writer = tf.summary.create_file_writer(DIR)
     for epoch in range(1, epochs + 1):
+        avg_loss=tf.metrics.Mean(name='loss', dtype=tf.float32)
         start_time = time.time()
         batch_start_time=start_time
-        i=0
-        for batch in train_set:
-            i+=1
+        for step, batch in enumerate(dataset):
             loss_x = train_step(batch, model, optimizer)
-            if i % print_interval ==0:
+            avg_loss.update_state(loss_x)
+            if tf.equal(optimizer.iterations % log_freq, 0):
+                tf.summary.scalar('loss', avg_loss.result(), step=optimizer.iterations)
+                avg_loss.reset_states()
+            if step+1 % print_interval ==0:
                 print('Batch',i,'done.', 'avg. batch time: {}s'.format((time.time()-batch_start_time)/print_interval))
                 batch_start_time=time.time()
-            if i % save_interval ==0:
-                generate_and_save_images(model, epoch, i, random_vector_for_generation)
+            if step+1 % save_interval ==0:
+                generate_and_save_images(model, epoch, step+1, random_vector_for_generation)
                 model.weight_saver(TRAINING_DIR, epoch, i)
                 end_time = time.time()
 
@@ -181,7 +186,7 @@ def train_vae(model, optimizer, epochs, print_interval, save_intevral):
             loss = tf.zeros(20000//BATCH_SIZE+1)
             j=0
             for test_x in test_set:
-                loss[j]=compute_loss(model, test_x))
+                loss[j]=compute_loss(model, test_x)
                 j+=1
                 elbo = -np.mean(loss)
             #display.clear_output(wait=False)
@@ -227,5 +232,5 @@ random_vector_for_generation = tf.random.normal(
 
 
 model = VAE(latent_dim)
-
-train_vae(model, optimizer, epochs, p_interval, s_interval)
+with train_summary_writer.as_default():
+    train_vae(model, optimizer, epochs, p_interval, s_interval)
