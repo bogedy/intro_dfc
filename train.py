@@ -21,7 +21,7 @@ def log_normal_pdf(sample, mean, logvar, raxis=1):
 mse=tf.losses.MeanSquaredError()
 
 @tf.function
-def compute_loss(model, x):
+def compute_loss(model, x, test=False):
     mean, logvar = model.encode(x)
     z = model.reparameterize(mean, logvar)
     x_r = model.decode(z)
@@ -33,104 +33,70 @@ def compute_loss(model, x):
     kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
 
     # Average over mini-batch
-    return tf.reduce_mean(rc_loss + kl_loss)
+    total_loss = tf.reduce_mean(rc_loss + kl_loss)
 
-#generate_and_save_images(model, 0, random_vector_for_generation)
+    if test:
+        return rc_loss, kl_loss, total_loss, x, x_r
+    else:
+        return rc_loss, kl_loss, total_loss
 
-def generate_and_save_images(model, epoch, batch, test_input):
-    predictions = model.sample(test_input)
-    fig = plt.figure(figsize=(2,2))
-
-    for i in range(predictions.shape[0]):
-        plt.subplot(2, 2, i+1)
-        plt.imshow(predictions[i, :, :, :])
-        plt.axis('off')
-
-    # tight_layout minimizes the overlap between 2 sub-plots
-    plt.savefig(TRAINING_DIR+'/image_at_epoch_{:04d}_batch_{:05d}.png'.format(epoch, batch))
-    #plt.show()
 
 @tf.function
 def train_step(batch, model, optimizer):
     with tf.GradientTape() as tape:
-        loss = compute_loss(model, batch)
+        rc_loss, kl_loss, loss = compute_loss(model, batch)
     gradients=tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-    return loss
+    return rc_loss, kl_loss, loss
 
 @tf.function
-def test()
-
-
-train_summary_writer = tf.summary.create_file_writer(TRAINING_DIR+'/summaries/train')
-test_summary_writer = tf.summary.create_file_writer(TRAINING_DIR+'/summaries/test')
-
-
-#todo: write train function and separate test function. I guess there's no
-#reason to have this in a function?
-
-
-def train_vae(model, optimizer, epochs, dataset, save_interval, log_freq=10):
-    summary_writer = tf.summary.create_file_writer(DIR)
-    for epoch in range(1, epochs + 1):
-        avg_loss=tf.metrics.Mean(name='loss', dtype=tf.float32)
-        start_time = time.time()
-        batch_start_time=start_time
-        for step, batch in enumerate(dataset):
-            loss_x = train_step(batch, model, optimizer)
-            avg_loss.update_state(loss_x)
-            if tf.equal(optimizer.iterations % log_freq, 0):
-                tf.summary.scalar('loss', avg_loss.result(), step=optimizer.iterations)
-                avg_loss.reset_states()
-            if step+1 % print_interval ==0:
-                print('Batch',i,'done.', 'avg. batch time: {}s'.format((time.time()-batch_start_time)/print_interval))
-                batch_start_time=time.time()
-            if step+1 % save_interval ==0:
-                generate_and_save_images(model, epoch, step+1, random_vector_for_generation)
-                model.weight_saver(TRAINING_DIR, epoch, i)
-                end_time = time.time()
-
-        if epoch % 1 == 0:
-            loss = tf.zeros(20000//BATCH_SIZE+1)
-            j=0
-            for test_x in test_set:
-                loss[j]=compute_loss(model, test_x)
-                j+=1
-                elbo = -np.mean(loss)
-            #display.clear_output(wait=False)
-            print('Epoch: {}, Test set ELBO: {},'.format(epoch, elbo),
-                'time elapse for current epoch {}'.format(epoch,elbo,end_time - start_time))
-
-    generate_and_save_images(model, epoch,0, random_vector_for_generation)
+def test(model, test_set, step):
+    rcmetric = tf.metrics.Mean()
+    klmetric = tf.metrics.Mean()
+    totalmetric  = tf.metrics.Mean()
+    for batch in test_set:
+        rc_loss, kl_loss, total_loss, x, x_r = compute_loss(model, batch, test=True)
+        rcmetric.update_state(rc_loss)
+        klmetric.update_state(kl_loss)
+        totalmetric.update_state(total_loss)
+    tf.summary.scalar('rc_loss', rcmetric.result(), step = step)
+    tf.summary.scalar('kl_loss', klmetric.result(), step = step)
+    tf.summary.scalar('total_loss', totalmetric.result(), step = step)
+    tf.summary.image('input', x, step = optimizer.iterations, max_outputs=3)
+    tf.summary.image('output', x_r, step = optimizer.iterations, max_outputs=3)
+    return totalmetric.result()
 
 #folder to save weights and images
+DIR='train1'
 
-TRAINING_DIR='train1'
+#input the celeb faces directory relative to the cwd
+image_dir='../img_align_celeba'
 
-##input the celeb faces directory relative to the cwd
-
-DIR='../img_align_celeba'
-
-all_image_paths=get_paths(DIR)
+all_image_paths=get_paths(image_dir)
 image_count=len(all_image_paths)
 
 train_paths=all_image_paths[:-20000]
 test_paths=all_image_paths[-20000:]
 
 BATCH_SIZE = 128
-#BUFFER_SIZE=image_count//9
 
 train_set= from_path_to_tensor(train_paths, BATCH_SIZE)
 test_set=from_path_to_tensor(test_paths, BATCH_SIZE)
 
+# check if I'm about to overwrite event files
+train_dir='./{}/summaries/train'.format(DIR)
+test_dir='./{}/summaries/train'.format(DIR)
+train_exists = os.path.exists(train_dir) and len(os.listdir(train_dir))!=0
+test_exists = os.path.exists(test_dir) and len(os.listdir(test_dir))!=0
+assert (not train_exists), "You are going to overwrite your train event files."
+assert (not test_exists), "You are going to overwrite your test event files."
+
+train_summary_writer = tf.summary.create_file_writer(TRAINING_DIR+'/summaries/train')
+test_summary_writer = tf.summary.create_file_writer(TRAINING_DIR+'/summaries/test')
 
 epochs = 10
 latent_dim = 50
 num_examples_to_generate = 4
-
-p_interval=100
-
-s_interval=500
 
 optimizer=tf.train.AdamOptimizer(1e-4)
 
@@ -138,7 +104,31 @@ optimizer=tf.train.AdamOptimizer(1e-4)
 random_vector_for_generation = tf.random.normal(
     shape=[num_examples_to_generate, latent_dim])
 
+log_freq=10
 
 model = VAE(latent_dim)
-with train_summary_writer.as_default():
-    train_vae(model, optimizer, epochs, p_interval, s_interval)
+
+## still need to add model saving!
+for epoch in range(1,epochs+1):
+    start_time = time.time()
+    rcmetric = tf.metrics.Mean()
+    klmetric = tf.metrics.Mean()
+    totalmetric  = tf.metrics.Mean()
+    for batch in train_set:
+        rc_loss, kl_loss, loss = train_step(batch, model, optimizer)
+        rcmetric.update_state(rc_loss)
+        klmetric.update_state(kl_loss)
+        totalmetric.update_state(total_loss)
+        if tf.equal(optimizer.iterations % log_freq, 0):
+            with train_summary_writer:
+                tf.summary.scalar('rc_loss', rcmetric.result(), step = step)
+                tf.summary.scalar('kl_loss', klmetric.result(), step = step)
+                tf.summary.scalar('total_loss', totalmetric.result(), step = step)
+            rcmetric.reset_states()
+            klmetric.reset_states()
+            totalmetric.reset_states()
+    with test_summary_writer:
+        avg_loss = test(model, test_set, optimizer.iterations)
+        print('Epoch: {}, test set average loss: {},'.format(epoch, avg_loss),
+            'time elapse for current epoch {}'.format(time.time() - start_time))
+    tf.saved_model.save(model, './{}/{}'.format(DIR,epoch))

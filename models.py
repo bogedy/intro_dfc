@@ -3,6 +3,7 @@ import tensorflow as tf
 
 # got some model ideas from here https://medium.com/@jonathan_hui/gan-dcgan-deep-convolutional-generative-adversarial-networks-df855c438f
 # http://karpathy.github.io/2019/04/25/recipe/
+# https://towardsdatascience.com/deciding-optimal-filter-size-for-cnns-d6f7b56f9363
 
 class VAE(tf.keras.Model):
     def __init__(self, latent_dim):
@@ -62,6 +63,7 @@ class VAE(tf.keras.Model):
         ]
         )
 
+    @tf.function
     def sample(self, eps=None):
         if eps is None:
             eps = tf.random.normal(shape=(4, self.latent_dim))
@@ -73,6 +75,7 @@ class VAE(tf.keras.Model):
             self.inference_net(x), num_or_size_splits=2, axis=1)
         return mean, logvar
 
+    @tf.function
     def reparameterize(self, mean, logvar):
         eps = tf.random.normal(shape=mean.shape)
         return eps * tf.exp(logvar * .5) + mean
@@ -80,7 +83,3 @@ class VAE(tf.keras.Model):
     @tf.function
     def decode(self, z):
         return self.generative_net(z)
-
-    def weight_saver(self, path, epoch=0, b):
-        save = path + '/modelweights_epoch{:03d}_batch{:05d}.h5'.format(epoch, b))
-        self.save_weights(save)
