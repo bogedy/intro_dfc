@@ -62,8 +62,8 @@ def test(model, test_set, step):
     tf.summary.scalar('rc_loss', rcmetric.result(), step = step)
     tf.summary.scalar('kl_loss', klmetric.result(), step = step)
     tf.summary.scalar('total_loss', totalmetric.result(), step = step)
-    tf.summary.image('input', x, step = optimizer.iterations, max_outputs=3)
-    tf.summary.image('output', x_r, step = optimizer.iterations, max_outputs=3)
+    tf.summary.image('input', x, step = step, max_outputs=3)
+    tf.summary.image('output', x_r, step = step, max_outputs=3)
     return totalmetric.result()
 
 if __name__ == "__main__":
@@ -123,9 +123,9 @@ if __name__ == "__main__":
             totalmetric.update_state(total_loss)
             if tf.equal(optimizer.iterations % log_freq, 0):
                 with train_summary_writer.as_default():
-                    tf.summary.scalar('rc_loss', rcmetric.result(), step = step)
-                    tf.summary.scalar('kl_loss', klmetric.result(), step = step)
-                    tf.summary.scalar('total_loss', totalmetric.result(), step = step)
+                    tf.summary.scalar('rc_loss', rcmetric.result(), step = optimizer.iterations)
+                    tf.summary.scalar('kl_loss', klmetric.result(), step = optimizer.iterations)
+                    tf.summary.scalar('total_loss', totalmetric.result(), step = optimizer.iterations)
                 rcmetric.reset_states()
                 klmetric.reset_states()
                 totalmetric.reset_states()
