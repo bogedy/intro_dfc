@@ -3,9 +3,11 @@ Introspective Deep Feature Consistent Variational Autoencoder
 
 My attempt to implement a [Deep Feature Consistent Variational Autoencoder](https://arxiv.org/abs/1610.00291) but in the introspective style of [this paper](https://arxiv.org/abs/1807.06358).
 
+Model defined in `models.py`, data input done in `data.py`, training loop in `train.py`, and the jupyter notebook is for testing things locally with a scaled down model.
+
 todo:
 * ~~Clean the code~~ more or less done
-* learn how to take advantge of multiple GPUs
+* learn how to take advantage of multiple GPUs
 * Train my normal VAE
 * Actually implement it
 
