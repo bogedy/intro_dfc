@@ -1,6 +1,6 @@
 from train import *
 
-if __name__ = "__main__":
+if __name__ == "__main__":
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
         #folder to save weights and images
@@ -45,7 +45,6 @@ if __name__ = "__main__":
 
         model = VAE(latent_dim)
 
-        ## still need to add model saving!
         for epoch in range(1,epochs+1):
             start_time = time.time()
             rcmetric = tf.metrics.Mean()
