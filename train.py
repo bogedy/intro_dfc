@@ -101,7 +101,7 @@ if __name__ == "__main__":
     latent_dim = 50
     num_examples_to_generate = 4
 
-    optimizer=tf.train.AdamOptimizer(1e-4)
+    optimizer=tf.optimizers.Adam(1e-4)
 
     # to be used for checking progress.
     random_vector_for_generation = tf.random.normal(
