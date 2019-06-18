@@ -17,10 +17,10 @@ class VAE(tf.keras.Model):
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Conv2D(
             filters=32, kernel_size=3, strides=(2, 2), use_bias=False, activation='relu'),
-            tf.keras.layers.BatchNormalization()
+            tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Conv2D(
             filters=16, kernel_size=3, strides=(2, 2), use_bias=False, activation='relu'),
-            tf.keras.layers.BatchNormalization()
+            tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Flatten(),
             # No activation
             tf.keras.layers.Dense(latent_dim + latent_dim),
@@ -39,7 +39,7 @@ class VAE(tf.keras.Model):
             use_bias=False,
             padding="SAME",
             activation='relu'),
-            tf.keras.layers.BatchNormalization()
+            tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Conv2DTranspose(
             filters=32,
             kernel_size=3,
@@ -47,7 +47,7 @@ class VAE(tf.keras.Model):
             use_bias=False,
             padding="SAME",
             activation='relu'),
-            tf.keras.layers.BatchNormalization()
+            tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Conv2DTranspose(
             filters=64,
             kernel_size=3,
@@ -55,7 +55,7 @@ class VAE(tf.keras.Model):
             use_bias=False,
             padding="SAME",
             activation='relu'),
-            tf.keras.layers.BatchNormalization()
+            tf.keras.layers.BatchNormalization(),
             # No activation
             tf.keras.layers.Conv2DTranspose(
             filters=3,
