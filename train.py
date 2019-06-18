@@ -97,7 +97,7 @@ if __name__ == "__main__":
     train_summary_writer = tf.summary.create_file_writer(train_dir)
     test_summary_writer = tf.summary.create_file_writer(test_dir)
 
-    epochs = 10
+    epochs = 100
     latent_dim = 50
     num_examples_to_generate = 4
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         klmetric = tf.metrics.Mean()
         totalmetric  = tf.metrics.Mean()
         for batch in train_set:
-            rc_loss, kl_loss, loss = train_step(batch, model, optimizer)
+            rc_loss, kl_loss, total_loss = train_step(batch, model, optimizer)
             rcmetric.update_state(rc_loss)
             klmetric.update_state(kl_loss)
             totalmetric.update_state(total_loss)
