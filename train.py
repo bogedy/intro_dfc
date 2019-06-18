@@ -122,14 +122,14 @@ if __name__ == "__main__":
             klmetric.update_state(kl_loss)
             totalmetric.update_state(total_loss)
             if tf.equal(optimizer.iterations % log_freq, 0):
-                with train_summary_writer:
+                with train_summary_writer.as_default():
                     tf.summary.scalar('rc_loss', rcmetric.result(), step = step)
                     tf.summary.scalar('kl_loss', klmetric.result(), step = step)
                     tf.summary.scalar('total_loss', totalmetric.result(), step = step)
                 rcmetric.reset_states()
                 klmetric.reset_states()
                 totalmetric.reset_states()
-        with test_summary_writer:
+        with test_summary_writer.as_default():
             avg_loss = test(model, test_set, optimizer.iterations)
             print('Epoch: {}, test set average loss: {},'.format(epoch, avg_loss),
                 'time elapse for current epoch {}'.format(time.time() - start_time))
