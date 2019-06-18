@@ -83,16 +83,18 @@ BATCH_SIZE = 128
 train_set= from_path_to_tensor(train_paths, BATCH_SIZE)
 test_set=from_path_to_tensor(test_paths, BATCH_SIZE)
 
+train_dir='./{}/train'.format(DIR)
+test_dir='./{}/test'.format(DIR)
+
 # check if I'm about to overwrite event files
-train_dir='./{}/summaries/train'.format(DIR)
-test_dir='./{}/summaries/train'.format(DIR)
 train_exists = os.path.exists(train_dir) and len(os.listdir(train_dir))!=0
 test_exists = os.path.exists(test_dir) and len(os.listdir(test_dir))!=0
 assert (not train_exists), "You are going to overwrite your train event files."
 assert (not test_exists), "You are going to overwrite your test event files."
 
-train_summary_writer = tf.summary.create_file_writer(TRAINING_DIR+'/summaries/train')
-test_summary_writer = tf.summary.create_file_writer(TRAINING_DIR+'/summaries/test')
+# Tensorboard logdirs
+train_summary_writer = tf.summary.create_file_writer(train_dir)
+test_summary_writer = tf.summary.create_file_writer(test_dir)
 
 epochs = 10
 latent_dim = 50
@@ -108,7 +110,6 @@ log_freq=10
 
 model = VAE(latent_dim)
 
-## still need to add model saving!
 for epoch in range(1,epochs+1):
     start_time = time.time()
     rcmetric = tf.metrics.Mean()
