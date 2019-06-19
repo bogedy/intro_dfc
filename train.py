@@ -68,7 +68,7 @@ def test(model, test_set, step):
 
 if __name__ == "__main__":
     #folder to save weights and images
-    DIR='train1'
+    DIR='experiment'
 
     #input the celeb faces directory relative to the cwd
     image_dir='../img_align_celeba'
