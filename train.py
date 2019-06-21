@@ -109,7 +109,7 @@ if __name__ == "__main__":
     random_vector_for_generation = tf.random.normal(
         shape=[num_examples_to_generate, latent_dim])
 
-    log_freq=10
+    log_freq=100
 
     model = VAE(latent_dim)
 
@@ -135,4 +135,5 @@ if __name__ == "__main__":
             avg_loss = test(model, test_set, optimizer.iterations)
             print('Epoch: {}, test set average loss: {},'.format(epoch, avg_loss),
                 'time elapse for current epoch {}'.format(time.time() - start_time))
-        tf.saved_model.save(model, './{}/{}'.format(DIR,epoch))
+        if epoch % 10 == 0:
+            tf.saved_model.save(model, './{}/{}'.format(DIR,epoch))
