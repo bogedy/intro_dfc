@@ -49,11 +49,13 @@ def train_step(batch, model, optimizer):
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
     return rc_loss, kl_loss, loss
 
-@tf.function
+#@tf.function
 def test(model, test_set, step):
     rcmetric = tf.metrics.Mean()
     klmetric = tf.metrics.Mean()
     totalmetric  = tf.metrics.Mean()
+    #x = tf.zeros((None, 192, 192, 3))
+    #x_r = tf.zeros((None, 192, 192, 3))
     for batch in test_set:
         rc_loss, kl_loss, total_loss, x, x_r = compute_loss(model, batch, test=True)
         rcmetric.update_state(rc_loss)
