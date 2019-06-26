@@ -70,15 +70,23 @@ class VAE(tf.keras.Model):
         return self.decode(eps)
 
     @tf.function
-    def encode(self, x):
-        mean, logvar = tf.split(
-            self.inference_net(x), num_or_size_splits=2, axis=1)
-        return mean, logvar
+    def encode(self, x, percep=False):
+        if percep==True:
+            outputs=[]
+            for layer in self.inference_net.layers:
+                x=layer(x)
+                if layer.name.startswith('conv2d') or layer.name.startswith('batch'):
+                    outputs.append(x)
+            mean, logvar = tf.split(x, num_or_size_splits=2, axis=1)
+            return mean, logvar, outputs
+        else:
+            mean, logvar = tf.split(self.inference_net(x), num_or_size_splits=2, axis=1)
+            return mean, logvar
 
     @tf.function
     def reparameterize(self, mean, logvar):
         eps = tf.random.normal(shape=mean.shape)
-        return eps * tf.exp(logvar * .5) + mean
+        return eps * tf.exp(logvar * .5) + m    ean
 
     @tf.function
     def decode(self, z):

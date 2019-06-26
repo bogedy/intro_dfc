@@ -33,10 +33,11 @@ def compute_loss(model, x, test=False):
     kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
     # Weight the kl loss so that it isn't miniscule.
     # See Equation (8) of Kingma and Welling, https://arxiv.org/pdf/1312.6114.pdf
-    kl_loss *= 202599
+    #kl_loss *= 202599
 
     # Average over mini-batch
     total_loss = tf.reduce_mean(rc_loss + kl_loss)
+    total_loss *= 202599
 
     if test:
         _, _2, outputs_r = model.encode(x_r, percep=True)
@@ -80,7 +81,7 @@ def test(model, test_set, step):
 
 if __name__ == "__main__":
     #folder to save weights and images
-    DIR='experiment1'
+    DIR='experiment2'
 
     #input the celeb faces directory relative to the cwd
     image_dir='../img_align_celeba'
