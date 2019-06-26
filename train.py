@@ -124,6 +124,7 @@ if __name__ == "__main__":
     model = VAE(latent_dim)
 
     for epoch in range(1,epochs+1):
+        train_set= from_path_to_tensor(train_paths, BATCH_SIZE)
         start_time = time.time()
         track_time = time.time()
         rcmetric = tf.metrics.Mean()
