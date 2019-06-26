@@ -86,7 +86,7 @@ class VAE(tf.keras.Model):
     @tf.function
     def reparameterize(self, mean, logvar):
         eps = tf.random.normal(shape=mean.shape)
-        return eps * tf.exp(logvar * .5) + m    ean
+        return eps * tf.exp(logvar * .5) + mean
 
     @tf.function
     def decode(self, z):
