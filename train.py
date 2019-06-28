@@ -23,7 +23,7 @@ def log_normal_pdf(sample, mean, logvar, raxis=1):
 def mse(label, prediction):
     #flatten the tensors, maintaining batch dim
     label, prediction = tuple(map(lambda x: tf.reshape(x, (x.shape[0], tf.reduce_prod(x.shape[1:]))), (label, prediction)))
-    return tf.keras.losses.MSE(label, prediction)
+    return tf.losses.MSE(label, prediction)
 
 @tf.function
 def compute_loss(model, x, test=False):
@@ -37,11 +37,12 @@ def compute_loss(model, x, test=False):
     # Regularization term (KL divergence)
     kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
 
-    # Weight the kl loss so that it isn't miniscule.
-    # See Equation (8) of Kingma and Welling, https://arxiv.org/pdf/1312.6114.pdf
+    # Even out the perceptual_losses
+
+    rc_loss *= 1e4
 
     # Average over mini-batch
-    total_loss = tf.reduce_mean(202599*rc_loss + kl_loss)
+    total_loss = tf.reduce_mean(rc_loss + kl_loss)
 
     if test:
         _, _2, outputs_r = model.encode(x_r, percep=True)
@@ -85,7 +86,7 @@ def test(model, test_set, step):
 
 if __name__ == "__main__":
     #folder to save weights and images
-    DIR='experiment4'
+    DIR='experiment5'
 
     #input the celeb faces directory relative to the cwd
     image_dir='../img_align_celeba'
