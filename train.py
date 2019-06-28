@@ -20,7 +20,7 @@ def log_normal_pdf(sample, mean, logvar, raxis=1):
         axis=raxis)
 
 @tf.function
-def mse(label, prediciton):
+def mse(label, prediction):
     #flatten the tensors, maintaining batch dim
     label, prediction = tuple(map(lambda x: tf.reshape(x, (x.shape[0], tf.reduce_prod(x.shape[1:]))), (label, prediction)))
     return tf.keras.losses.MSE(label, prediction)
