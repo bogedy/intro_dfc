@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import imageio
 
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 #loss definitions
 
@@ -33,7 +34,7 @@ def compute_loss(model, x, test=False):
     kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
     # Weight the kl loss so that it isn't miniscule.
     # See Equation (8) of Kingma and Welling, https://arxiv.org/pdf/1312.6114.pdf
-    kl_loss *= 202599
+    kl_loss *= 10**6
 
     # Average over mini-batch
     total_loss = tf.reduce_mean(rc_loss + kl_loss)
@@ -80,7 +81,7 @@ def test(model, test_set, step):
 
 if __name__ == "__main__":
     #folder to save weights and images
-    DIR='experiment1'
+    DIR='experiment3'
 
     #input the celeb faces directory relative to the cwd
     image_dir='../img_align_celeba'
@@ -152,6 +153,6 @@ if __name__ == "__main__":
         with test_summary_writer.as_default():
             avg_loss = test(model, test_set, optimizer.iterations)
             print('Epoch: {}, test set average loss: {},'.format(epoch, avg_loss),
-                'time elapse for current epoch {}'.format(time.time() - start_time))
+                'time elapsed for current epoch: {}'.format((time.time() - start_time)/60), 'minutes')
         if epoch % 10 == 0:
             tf.saved_model.save(model, './{}/{}'.format(DIR,epoch))
