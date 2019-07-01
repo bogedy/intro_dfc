@@ -37,12 +37,41 @@ def compute_loss(model, x, test=False):
     # Regularization term (KL divergence)
     kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
 
-    # Even out the perceptual_losses
+    # Even out the losses
 
     rc_loss *= 1e4
 
     # Average over mini-batch
     total_loss = tf.reduce_mean(rc_loss + kl_loss)
+
+    if test:
+        _, _2, outputs_r = model.encode(x_r, percep=True)
+        perceptual_losses = [mse(original, reconstructed) for original, reconstructed in zip(outputs, outputs_r)]
+        return perceptual_losses, rc_loss, kl_loss, total_loss, x, x_r
+    else:
+        return rc_loss, kl_loss, total_loss
+
+
+@tf.function
+def compute_dfc_loss(model, x, test=False):
+    mean, logvar, outputs = model.encode(x, percep=True)
+    z = model.reparameterize(mean, logvar)
+    x_r = model.decode(z)
+
+    _, _2, outputs_r = model.encode(x_r, percep=True)
+
+    perceptual_losses = [mse(original, reconstructed) for original, reconstructed in zip(outputs, outputs_r)]
+
+    # Reconstruction loss
+    rc_loss = mse(x, x_r)
+
+    # Regularization term (KL divergence)
+    kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
+
+    total_loss = sum(perceptual_losses) + kl_loss
+
+    # Average over mini-batch
+    total_loss = tf.reduce_mean(total_loss)
 
     if test:
         _, _2, outputs_r = model.encode(x_r, percep=True)

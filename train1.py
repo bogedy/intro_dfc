@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import imageio
 
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 #loss definitions
 
@@ -18,7 +19,11 @@ def log_normal_pdf(sample, mean, logvar, raxis=1):
         -.5 * ((sample - mean) ** 2. * tf.exp(-logvar) + logvar + log2pi),
         axis=raxis)
 
-mse=tf.losses.MeanSquaredError()
+@tf.function
+def mse(label, prediction):
+    #flatten the tensors, maintaining batch dim
+    label, prediction = tuple(map(lambda x: tf.reshape(x, (x.shape[0], tf.reduce_prod(x.shape[1:]))), (label, prediction)))
+    return tf.losses.MSE(label, prediction)
 
 @tf.function
 def compute_loss(model, x, test=False):
@@ -31,13 +36,42 @@ def compute_loss(model, x, test=False):
 
     # Regularization term (KL divergence)
     kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
-    # Weight the kl loss so that it isn't miniscule.
-    # See Equation (8) of Kingma and Welling, https://arxiv.org/pdf/1312.6114.pdf
-    #kl_loss *= 202599
+
+    # Even out the losses
+
+    rc_loss *= 1e4
 
     # Average over mini-batch
     total_loss = tf.reduce_mean(rc_loss + kl_loss)
-    total_loss *= 202599
+
+    if test:
+        _, _2, outputs_r = model.encode(x_r, percep=True)
+        perceptual_losses = [mse(original, reconstructed) for original, reconstructed in zip(outputs, outputs_r)]
+        return perceptual_losses, rc_loss, kl_loss, total_loss, x, x_r
+    else:
+        return rc_loss, kl_loss, total_loss
+
+
+@tf.function
+def compute_dfc_loss(model, x, test=False):
+    mean, logvar, outputs = model.encode(x, percep=True)
+    z = model.reparameterize(mean, logvar)
+    x_r = model.decode(z)
+
+    _, _2, outputs_r = model.encode(x_r, percep=True)
+
+    perceptual_losses = [mse(original, reconstructed) for original, reconstructed in zip(outputs, outputs_r)]
+
+    # Reconstruction loss
+    rc_loss = mse(x, x_r)
+
+    # Regularization term (KL divergence)
+    kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
+
+    total_loss = sum(perceptual_losses) + kl_loss
+
+    # Average over mini-batch
+    total_loss = tf.reduce_mean(total_loss)
 
     if test:
         _, _2, outputs_r = model.encode(x_r, percep=True)
@@ -81,7 +115,7 @@ def test(model, test_set, step):
 
 if __name__ == "__main__":
     #folder to save weights and images
-    DIR='experiment2'
+    DIR='experiment5'
 
     #input the celeb faces directory relative to the cwd
     image_dir='../img_align_celeba'
@@ -153,6 +187,6 @@ if __name__ == "__main__":
         with test_summary_writer.as_default():
             avg_loss = test(model, test_set, optimizer.iterations)
             print('Epoch: {}, test set average loss: {},'.format(epoch, avg_loss),
-                'time elapse for current epoch {}'.format(time.time() - start_time))
+                'time elapsed for current epoch: {}'.format((time.time() - start_time)/60), 'minutes')
         if epoch % 10 == 0:
             tf.saved_model.save(model, './{}/{}'.format(DIR,epoch))

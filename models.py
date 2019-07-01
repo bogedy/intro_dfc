@@ -63,6 +63,9 @@ class VAE(tf.keras.Model):
         ]
         )
 
+        # the first two convolution layers
+        self.selected_layers = [layer.name for layer in self.inference_net.layers if layer.name.startswith('conv')][:2]
+
     @tf.function
     def sample(self, eps=None):
         if eps is None:
