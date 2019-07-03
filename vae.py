@@ -1,4 +1,4 @@
-from train_ops import all
+from train_ops import *
 
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
@@ -7,7 +7,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 DIR = 'experiment6'
 BATCH_SIZE = 128
 image_size = 64
-epochs = 25
+epochs = 50
 latent_dim = 50
 optimizer = tf.optimizers.Adam(1e-4)
 log_freq = 100
@@ -22,7 +22,7 @@ image_dir='../img_align_celeba'
 all_image_paths=get_paths(image_dir)
 train_paths=all_image_paths[:-20000]
 test_paths=all_image_paths[-20000:]
-train_set= from_path_to_tensor(train_paths, BATCH_SIZE, size=image_size)
+#train set defined in the loop for shuffling
 test_set=from_path_to_tensor(test_paths, BATCH_SIZE, size=image_size)
 train_dir='./{}/train'.format(DIR)
 test_dir='./{}/test'.format(DIR)
@@ -47,10 +47,8 @@ rcmetric_test = tf.metrics.Mean()
 klmetric_test = tf.metrics.Mean()
 totalmetric_test  = tf.metrics.Mean()
 
-tester = test()
-
 for epoch in range(1,epochs+1):
-    train_set= from_path_to_tensor(train_paths, BATCH_SIZE)
+    train_set= from_path_to_tensor(train_paths, BATCH_SIZE, size=image_size)
     start_time = time.time()
     for i, batch in enumerate(train_set):
         loss_dict = train_step(batch, model, optimizer, mode)
@@ -61,7 +59,7 @@ for epoch in range(1,epochs+1):
         if tf.equal(optimizer.iterations % log_freq, 0):
             with train_summary_writer.as_default():
                 for loss, metric in metrics_dict.items():
-                    tf.summary.scalar(loss, metric.result())
+                    tf.summary.scalar(loss, metric.result(), step = optimizer.iterations)
                     metric.reset_states()
 
     with test_summary_writer.as_default():

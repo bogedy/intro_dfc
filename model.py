@@ -7,7 +7,7 @@ import tensorflow as tf
 
 # image dim must be divisible by 8
 class VAE(tf.keras.Model):
-    def __init__(self, latent_dim, image_dim=192, kernelsize=3, selected_layers = None):
+    def __init__(self, latent_dim, image_dim, kernelsize=3, selected_layers = None):
         super(VAE, self).__init__()
         self.latent_dim = latent_dim
         self.inference_net = tf.keras.Sequential(

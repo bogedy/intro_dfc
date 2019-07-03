@@ -1,9 +1,9 @@
 
 import tensorflow as tf
 from tensorflow.keras import layers
-from tensorlfow.keras.backend import batch_flatten
+from tensorflow.keras.backend import batch_flatten
 from data import *
-from models import *
+from model import *
 import os
 import time
 import numpy as np
@@ -79,18 +79,19 @@ def train_step(batch, model, optimizer, mode):
 class test:
     def __init__(self, loss_dict):
         #testing metrics
-        metric_dict = {key: tf.metrics.Mean() for key in loss_dict}
+        self.metric_dict = {key: tf.metrics.Mean() for key in loss_dict}
+        self.losses_dict = loss_dict
 
     @tf.function
     def __call__(self, model, test_set, step, mode):
         for batch in test_set:
-            losses_dict = compute_loss(model, batch, mode, test=True)
-            for loss, value in losses_dict.items():
+            self.losses_dict = compute_loss(model, batch, mode, test=True)
+            for loss, value in self.losses_dict.items():
                 self.metric_dict[loss].update_state(value)
-        rv = losses_dict['total_loss'].result()
+        rv = self.losses_dict['total_loss'].result()
         for loss, metric in self.metric_dict.items():
             tf.summary.scalar(loss, metric.result())
             metric.reset_states()
-        tf.summary.image('input', losses_dict['x'], step = step, max_outputs=3)
-        tf.summary.image('output', losses_dict['x_r'], step = step, max_outputs=3)
+        tf.summary.image('input', self.losses_dict['x'], step = step, max_outputs=3)
+        tf.summary.image('output', self.losses_dict['x_r'], step = step, max_outputs=3)
         return rv
