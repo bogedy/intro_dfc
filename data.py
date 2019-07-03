@@ -9,20 +9,20 @@ def get_paths(directory):
     return [str(path) for path in all_image_paths]
 
 
-def preprocess_image(image):
+def preprocess_image(image, size=192):
     image = tf.image.decode_jpeg(image, channels=3)
-    image = tf.image.resize(image, [192, 192])
+    image = tf.image.resize(image, [size, size])
     image /= 255.0  # normalize to [0,1] range
     #image = tf.image.convert_image_dtype(image, tf.float16)
     return image
 
-def load_and_preprocess_image(path):
+def load_and_preprocess_image(path, size=192):
     image = tf.io.read_file(path)
-    return preprocess_image(image)
+    return preprocess_image(image, size)
 
-def from_path_to_tensor(paths, batch_size):
+def from_path_to_tensor(paths, batch_size, size=192):
     path_ds=tf.data.Dataset.from_tensor_slices(paths)
-    ds=path_ds.map(load_and_preprocess_image, num_parallel_calls=1)
+    ds=path_ds.map(lambda x: load_and_preprocess_image(x, size), num_parallel_calls=1)
     #ds=ds.repeat()
     ds=ds.shuffle(5000)
     ds=ds.batch(batch_size)

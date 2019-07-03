@@ -5,12 +5,12 @@ My attempt to implement a [Deep Feature Consistent Variational Autoencoder](http
 
 This project makes use of the new TensorFlow 2.0 beta using a custom training loop. Man oh man things are easier now!
 
-Model defined in `models.py`, data input done in `data.py`, training loop in `train.py`, and the jupyter notebook is for testing things locally with a scaled down model.
+Model defined in `model.py`, data input done in `data.py`, training functions defined in `train_ops.py`, and the jupyter notebook is for testing things locally with a scaled down model.
 
 todo:
 * ~~Clean the code~~ more or less done
-* learn how to take advantage of multiple GPUs
-* Train my normal VAE
+* ~~learn how to take advantage of multiple GPUs~~ eh, that was overrated anyways
+* ~~Train my normal VAE~~ Done!
 * Actually implement it
 
 resources used:
