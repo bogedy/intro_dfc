@@ -7,8 +7,9 @@ import tensorflow as tf
 
 # image dim must be divisible by 8
 class VAE(tf.keras.Model):
-    def __init__(self, latent_dim, image_dim, kernelsize=3, selected_layers = None):
+    def __init__(self, latent_dim, image_dim, batch_size, kernelsize=3, selected_layers = None):
         super(VAE, self).__init__()
+        self.batch_size = batch_size
         self.latent_dim = latent_dim
         self.inference_net = tf.keras.Sequential(
             [
@@ -71,13 +72,13 @@ class VAE(tf.keras.Model):
             self.selected_layers = [layer.name for layer in self.inference_net.layers if layer.name.startswith('conv')][:2]
 
     @tf.function
-    def encode(self, x, percep=False):
+    def encode(self, x):
         mean, logvar = tf.split(self.inference_net(x), num_or_size_splits=2, axis=1)
         return mean, logvar
 
     @tf.function
     def reparameterize(self, mean, logvar):
-        eps = tf.random.normal(shape=mean.shape)
+        eps = tf.random.normal(shape=tf.shape(mean))
         return eps * tf.exp(logvar * .5) + mean
 
     @tf.function

@@ -13,14 +13,15 @@ optimizer = tf.optimizers.Adam(1e-4)
 log_freq = 100
 kernelsize = 3
 mode = 'vae'
-model = VAE(latent_dim, image_size, kernelsize)
+model = VAE(latent_dim, image_size, BATCH_SIZE, kernelsize)
 #####################################
 
 #input the celeb faces directory relative to the cwd
 image_dir='../img_align_celeba'
 
 all_image_paths=get_paths(image_dir)
-train_paths=all_image_paths[:-20000]
+train_paths=all_image_paths[:256]
+#train_paths=all_image_paths[:-20000]
 test_paths=all_image_paths[-20000:]
 #train set defined in the loop for shuffling
 test_set=from_path_to_tensor(test_paths, BATCH_SIZE, size=image_size)
@@ -34,18 +35,6 @@ assert (not test_exists), "You are going to overwrite your test event files."
 # Tensorboard logdirs
 train_summary_writer = tf.summary.create_file_writer(train_dir)
 test_summary_writer = tf.summary.create_file_writer(test_dir)
-
-
-#training metrics
-rcmetric = tf.metrics.Mean()
-klmetric = tf.metrics.Mean()
-totalmetric  = tf.metrics.Mean()
-percep_metrics = [tf.metrics.Mean(name=layer) for layer in model.selected_layers]
-
-#testing metrics
-rcmetric_test = tf.metrics.Mean()
-klmetric_test = tf.metrics.Mean()
-totalmetric_test  = tf.metrics.Mean()
 
 for epoch in range(1,epochs+1):
     train_set= from_path_to_tensor(train_paths, BATCH_SIZE, size=image_size)
@@ -63,7 +52,7 @@ for epoch in range(1,epochs+1):
                     metric.reset_states()
 
     with test_summary_writer.as_default():
-        tester = test(loss_dict)
+        tester = test(loss_dict, image_size)
         avg_loss = tester(model, test_set, optimizer.iterations, mode)
         print('Epoch: {}, test set average loss: {},'.format(epoch, avg_loss),
             'time elapsed for current epoch: {}'.format((time.time() - start_time)/60), 'minutes')

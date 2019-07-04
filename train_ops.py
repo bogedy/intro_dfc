@@ -18,7 +18,8 @@ def mse(label, prediction):
 
 @tf.function
 def compute_loss(model, x, mode, test=False):
-    mean, logvar = model.encode(x, percep=True)
+    mean, logvar = model.encode(x)
+    print(logvar.shape)
     z = model.reparameterize(mean, logvar)
     x_r = model.decode(z)
     rv = {}
@@ -33,7 +34,7 @@ def compute_loss(model, x, mode, test=False):
         rc_loss = mse(x, x_r)
         rv['rc_loss']=rc_loss
         # Average over mini-batch and balance the losses
-        total_loss = tf.reduce_mean(rc_loss*1e4 + kl_loss)
+        total_loss = tf.reduce_mean(rc_loss*1e3 + kl_loss)
 
     if mode == 'dfc':
         # get deep features
@@ -77,21 +78,24 @@ def train_step(batch, model, optimizer, mode):
 
 # Use a class to create tf.variables on call for AutoGraph
 class test:
-    def __init__(self, loss_dict):
+    def __init__(self, loss_dict, image_size):
         #testing metrics
         self.metric_dict = {key: tf.metrics.Mean() for key in loss_dict}
         self.losses_dict = loss_dict
+        self.losses_dict['x']=tf.zeros(shape=(loss_dict['kl_loss'].shape[0], image_size, image_size, 3))
+        self.losses_dict['x_r']=tf.zeros(shape=(loss_dict['kl_loss'].shape[0], image_size, image_size, 3))
 
     @tf.function
     def __call__(self, model, test_set, step, mode):
         for batch in test_set:
             self.losses_dict = compute_loss(model, batch, mode, test=True)
-            for loss, value in self.losses_dict.items():
-                self.metric_dict[loss].update_state(value)
-        rv = self.losses_dict['total_loss'].result()
+            for loss, metric in self.metric_dict.items():
+                metric.update_state(self.losses_dict[loss])
+        rv = self.metric_dict['total_loss'].result()
         for loss, metric in self.metric_dict.items():
-            tf.summary.scalar(loss, metric.result())
+            tf.summary.scalar(loss, metric.result(), step=step)
             metric.reset_states()
-        tf.summary.image('input', self.losses_dict['x'], step = step, max_outputs=3)
-        tf.summary.image('output', self.losses_dict['x_r'], step = step, max_outputs=3)
+        with tf.device('/cpu:0'):
+            tf.summary.image('input', self.losses_dict['x'], step = step, max_outputs=3)
+            tf.summary.image('output', self.losses_dict['x_r'], step = step, max_outputs=3)
         return rv
