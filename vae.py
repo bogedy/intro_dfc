@@ -4,9 +4,9 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 ###########  Parameters  ############
 #folder to save weights and images
-DIR = 'experiment6'
+DIR = 'temp'
 BATCH_SIZE = 128
-image_size = 64
+image_size = 192
 epochs = 50
 latent_dim = 50
 optimizer = tf.optimizers.Adam(1e-4)
@@ -14,14 +14,15 @@ log_freq = 100
 kernelsize = 3
 mode = 'vae'
 model = VAE(latent_dim, image_size, BATCH_SIZE, kernelsize)
+scales = {}
 #####################################
 
 #input the celeb faces directory relative to the cwd
 image_dir='../img_align_celeba'
 
 all_image_paths=get_paths(image_dir)
-train_paths=all_image_paths[:256]
 #train_paths=all_image_paths[:-20000]
+train_paths=all_image_paths[:-20000]
 test_paths=all_image_paths[-20000:]
 #train set defined in the loop for shuffling
 test_set=from_path_to_tensor(test_paths, BATCH_SIZE, size=image_size)
@@ -40,7 +41,7 @@ for epoch in range(1,epochs+1):
     train_set= from_path_to_tensor(train_paths, BATCH_SIZE, size=image_size)
     start_time = time.time()
     for i, batch in enumerate(train_set):
-        loss_dict = train_step(batch, model, optimizer, mode)
+        loss_dict = train_step(batch, model, optimizer, mode, scales)
         if i==0:
             metrics_dict = {key: tf.metrics.Mean() for key in loss_dict}
         for loss, value in loss_dict.items():
@@ -53,7 +54,7 @@ for epoch in range(1,epochs+1):
 
     with test_summary_writer.as_default():
         tester = test(loss_dict, image_size)
-        avg_loss = tester(model, test_set, optimizer.iterations, mode)
+        avg_loss = tester(model, test_set, optimizer.iterations, mode, scales)
         print('Epoch: {}, test set average loss: {},'.format(epoch, avg_loss),
             'time elapsed for current epoch: {}'.format((time.time() - start_time)/60), 'minutes')
     if epoch % 10 == 0:

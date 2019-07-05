@@ -17,9 +17,8 @@ def mse(label, prediction):
     return tf.losses.MSE(batch_flatten(label), batch_flatten(prediction))
 
 @tf.function
-def compute_loss(model, x, mode, test=False):
+def compute_loss(model, x, mode, scales, test=False):
     mean, logvar = model.encode(x)
-    print(logvar.shape)
     z = model.reparameterize(mean, logvar)
     x_r = model.decode(z)
     rv = {}
@@ -32,9 +31,10 @@ def compute_loss(model, x, mode, test=False):
     if mode == 'vae':
         # Reconstruction loss
         rc_loss = mse(x, x_r)
+        if 'rc_loss' in scales.keys(): rc_loss *= scales['rc_loss']
         rv['rc_loss']=rc_loss
         # Average over mini-batch and balance the losses
-        total_loss = tf.reduce_mean(rc_loss*1e3 + kl_loss)
+        total_loss = tf.reduce_mean(rc_loss + kl_loss)
 
     if mode == 'dfc':
         # get deep features
@@ -43,8 +43,10 @@ def compute_loss(model, x, mode, test=False):
         # Perceptual loss
         perceptual_losses = [mse(original, reconstructed) for original, reconstructed in zip(outputs, outputs_r)]
         for layer, loss in zip(model.selected_layers, perceptual_losses):
+            if layer in scales.keys(): loss*=scales[layer]
             rv[layer]=loss
-        percep_loss = sum(perceptual_losses)
+        percep_loss = sum([rv[layer] for layer in model.selected_layers])
+        if 'percep_loss' in scales.keys(): percep_loss *= scales['percep_loss']
         rv['percep_loss']=percep_loss
         total_loss = tf.reduce_mean(percep_loss + kl_loss)
 
@@ -53,10 +55,13 @@ def compute_loss(model, x, mode, test=False):
         outputs_r = model.get_features(x_r)
         perceptual_losses = [mse(original, reconstructed) for original, reconstructed in zip(outputs, outputs_r)]
         for layer, loss in zip(model.selected_layers, perceptual_losses):
+            if layer in scales.keys(): loss*=scales[layer]
             rv[layer]=loss
         percep_loss = sum(perceptual_losses)
+        if 'percep_loss' in scales.keys(): percep_loss *= scales['percep_loss']
         rv['percep_loss']=percep_loss
         rc_loss = mse(x, x_r)
+        if 'rc_loss' in scales.keys(): rc_loss *= scales['rc_loss']
         rv['rc_loss']=rc_loss
         total_loss = tf.reduce_mean(percep_loss + rc_loss + kl_loss)
 
@@ -65,13 +70,15 @@ def compute_loss(model, x, mode, test=False):
     if test:
         rv['x']=x
         rv['x_r']=x_r
-
+    # scale the losses
+    for loss, scale in scales.items():
+        rv[loss] *= scale
     return rv
 
 @tf.function
-def train_step(batch, model, optimizer, mode):
+def train_step(batch, model, optimizer, mode, scales):
     with tf.GradientTape() as tape:
-        loss_dict = compute_loss(model, batch, mode)
+        loss_dict = compute_loss(model, batch, mode, scales)
     gradients=tape.gradient(loss_dict['total_loss'], model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
     return loss_dict
@@ -87,10 +94,11 @@ class test:
 
     @tf.function
     def __call__(self, model, test_set, step, mode):
-        for batch in test_set:
-            self.losses_dict = compute_loss(model, batch, mode, test=True)
-            for loss, metric in self.metric_dict.items():
-                metric.update_state(self.losses_dict[loss])
+        with tf.device('/gpu:0'):
+            for batch in test_set:
+                self.losses_dict = compute_loss(model, batch, mode, scales, test=True)
+                for loss, metric in self.metric_dict.items():
+                    metric.update_state(self.losses_dict[loss])
         rv = self.metric_dict['total_loss'].result()
         for loss, metric in self.metric_dict.items():
             tf.summary.scalar(loss, metric.result(), step=step)
