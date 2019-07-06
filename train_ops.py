@@ -93,7 +93,7 @@ class test:
         self.losses_dict['x_r']=tf.zeros(shape=(loss_dict['kl_loss'].shape[0], image_size, image_size, 3))
 
     @tf.function
-    def __call__(self, model, test_set, step, mode):
+    def __call__(self, model, test_set, step, mode, scales):
         with tf.device('/gpu:0'):
             for batch in test_set:
                 self.losses_dict = compute_loss(model, batch, mode, scales, test=True)
