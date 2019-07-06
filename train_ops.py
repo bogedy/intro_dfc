@@ -25,6 +25,7 @@ def compute_loss(model, x, mode, scales, test=False):
 
     # Regularization term (KL divergence)
     kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
+    if 'kl_loss' in scales.keys(): kl_loss *= scales['kl_loss']
     rv['kl_loss']=kl_loss
 
     # Different losses for different trianing modes.
@@ -70,9 +71,6 @@ def compute_loss(model, x, mode, scales, test=False):
     if test:
         rv['x']=x
         rv['x_r']=x_r
-    # scale the losses
-    for loss, scale in scales.items():
-        rv[loss] *= scale
     return rv
 
 @tf.function
