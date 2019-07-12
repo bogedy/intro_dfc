@@ -74,7 +74,7 @@ def compute_loss(model, x, mode, scales, test=False):
     return rv
 
 @tf.function
-def train_step(batch, model, optimizer, mode, scales):
+def train_step(batch, model, optimizer, opt2, opt3, mode, scales):
     with tf.GradientTape(persistent=True) as tape:
         loss_dict = compute_loss(model, batch, mode, scales)
     inf_gradients = tape.gradient(loss_dict['total_loss'], model.inference_net.trainable_variables)

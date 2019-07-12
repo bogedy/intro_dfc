@@ -4,7 +4,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 ###########  Parameters  ############
 #folder to save weights and images
-DIR = 'temp'
+DIR = 'experiment13'
 BATCH_SIZE = 128
 image_size = 192
 epochs = 50
@@ -15,10 +15,10 @@ optimizer = tf.optimizers.Adam(lr)
 opt2 = tf.optimizers.Adam(lr)
 opt3 = tf.optimizers.Adam(lr)
 log_freq = 100
-kernelsize = 3
-mode = 'vae'
+kernelsize = 5
+mode = 'dfc'
 model = VAE(latent_dim, image_size, mode, kernelsize)
-scales = {}
+scales = {'kl_loss': 1e5}
 #####################################
 
 #input the celeb faces directory relative to the cwd
@@ -45,7 +45,7 @@ for epoch in range(1,epochs+1):
     train_set= from_path_to_tensor(train_paths, BATCH_SIZE, size=image_size)
     start_time = time.time()
     for i, batch in enumerate(train_set):
-        loss_dict = train_step(batch, model, optimizer, mode, scales)
+        loss_dict = train_step(batch, model, optimizer, opt2, opt3, mode, scales)
         if i==0:
             metrics_dict = {key: tf.metrics.Mean() for key in loss_dict}
         for loss, value in loss_dict.items():
