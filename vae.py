@@ -55,7 +55,7 @@ for epoch in range(1,epochs+1):
     with test_summary_writer.as_default():
         tester = test(loss_dict, image_size)
         avg_loss = tester(model, test_set, optimizer.iterations, mode, scales)
-        print('Epoch: {}, test set average loss: {},'.format(epoch, avg_loss),
-            'time elapsed for current epoch: {}'.format((time.time() - start_time)/60), 'minutes')
+        print('Epoch: {}, test set average loss: {:.4f},'.format(epoch, avg_loss),
+            'time elapsed for current epoch: {:.2f}'.format((time.time() - start_time)/60), 'minutes')
     if epoch % 10 == 0:
         tf.saved_model.save(model, './{}/{}'.format(DIR,epoch))
