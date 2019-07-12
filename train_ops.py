@@ -75,10 +75,14 @@ def compute_loss(model, x, mode, scales, test=False):
 
 @tf.function
 def train_step(batch, model, optimizer, mode, scales):
-    with tf.GradientTape() as tape:
+    with tf.GradientTape(persistent=True) as tape:
         loss_dict = compute_loss(model, batch, mode, scales)
-    gradients=tape.gradient(loss_dict['total_loss'], model.trainable_variables)
-    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+    inf_gradients = tape.gradient(loss_dict['total_loss'], model.inference_net.trainable_variables)
+    gen_gradients = tape.gradient(loss_dict['total_loss'], model.generative_net.trainable_variables)
+    optimizer.apply_gradients(zip(inf_gradients, model.inference_net.trainable_variables))
+    opt2.apply_gradients(zip(gen_gradients, model.generative_net.trainable_variables))
+    if mode == 'dfc' or mode == 'combo':
+        opt3.apply_gradients(zip(inf_gradients, model.percep_net.trainable_variables))
     return loss_dict
 
 # Use a class to create tf.variables on call for AutoGraph

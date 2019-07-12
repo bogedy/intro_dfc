@@ -9,11 +9,15 @@ BATCH_SIZE = 128
 image_size = 192
 epochs = 50
 latent_dim = 50
-optimizer = tf.optimizers.Adam(1e-4)
+lr = 1e-4
+optimizer = tf.optimizers.Adam(lr)
+# Extra optimizers for deep feature training
+opt2 = tf.optimizers.Adam(lr)
+opt3 = tf.optimizers.Adam(lr)
 log_freq = 100
 kernelsize = 3
 mode = 'vae'
-model = VAE(latent_dim, image_size, BATCH_SIZE, kernelsize)
+model = VAE(latent_dim, image_size, mode, kernelsize)
 scales = {}
 #####################################
 

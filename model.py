@@ -7,7 +7,7 @@ import tensorflow as tf
 
 # image dim must be divisible by 8
 class VAE(tf.keras.Model):
-    def __init__(self, latent_dim, image_dim, batch_size, kernelsize=3, selected_layers = None):
+    def __init__(self, latent_dim, image_dim, mode, kernelsize=3, selected_layers = None):
         super(VAE, self).__init__()
         self.batch_size = batch_size
         self.latent_dim = latent_dim
@@ -65,6 +65,12 @@ class VAE(tf.keras.Model):
         ]
         )
 
+        # Create a separate network for calculating loss, it receives the same updates
+        # as the inference net. They should always be equal.
+        if mode == 'dfc' or mode == 'combo':
+            self.percep_net = tf.keras.models.clone_model(self.inference_net)
+            self.percep_net.set_weights(self.inference_net.get_weights())
+
         # if no layers are specififed, use the first two convolution layers
         if selected_layers:
             self.selected_layers = selected_layers
@@ -86,12 +92,12 @@ class VAE(tf.keras.Model):
         return self.generative_net(z)
 
     @tf.function
-    def get_features(self, x_r):
+    def get_features(self, x):
         rv = []
-        for layer in self.inference_net.layers:
+        for layer in self.percep_net.layers:
                 # We do not want to apply updates for the inference pass
-                x_r=tf.stop_gradient(layer(x_r))
+                x=layer(x)
                 if layer.name in self.selected_layers:
-                    rv.append(x_r)
+                    rv.append(x)
                 if len(rv) == len(self.selected_layers):
                     return rv
