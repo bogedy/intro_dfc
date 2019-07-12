@@ -9,7 +9,6 @@ import tensorflow as tf
 class VAE(tf.keras.Model):
     def __init__(self, latent_dim, image_dim, mode, kernelsize=3, selected_layers = None):
         super(VAE, self).__init__()
-        self.batch_size = batch_size
         self.latent_dim = latent_dim
         self.inference_net = tf.keras.Sequential(
             [
