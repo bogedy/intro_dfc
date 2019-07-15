@@ -62,4 +62,4 @@ for epoch in range(1,epochs+1):
         print('Epoch: {}, test set average loss: {:.4f},'.format(epoch, avg_loss),
             'time elapsed for current epoch: {:.2f}'.format((time.time() - start_time)/60), 'minutes')
     if epoch % 10 == 0:
-        tf.saved_model.save(model, './{}/{}'.format(DIR,epoch))
+        model.saver(DIR, epoch)
