@@ -4,7 +4,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 ###########  Parameters  ############
 #folder to save weights and images
-DIR = 'experiment13'
+DIR = 'experiment15'
 BATCH_SIZE = 128
 image_size = 192
 epochs = 50
@@ -16,7 +16,7 @@ opt2 = tf.optimizers.Adam(lr)
 opt3 = tf.optimizers.Adam(lr)
 log_freq = 100
 kernelsize = 5
-mode = 'dfc'
+mode = 'vae'
 model = VAE(latent_dim, image_size, mode, kernelsize)
 scales = {'kl_loss': 1e5}
 #####################################
