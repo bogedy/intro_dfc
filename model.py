@@ -7,62 +7,64 @@ import tensorflow as tf
 
 # image dim must be divisible by 8
 class VAE(tf.keras.Model):
-    def __init__(self, latent_dim, image_dim, mode, kernelsize=3, selected_layers = None):
+    def __init__(self, latent_dim, image_dim, mode, kernelsize=3, selected_layers = None, loader = None):
         super(VAE, self).__init__()
-        self.latent_dim = latent_dim
-        self.inference_net = tf.keras.Sequential(
-            [
-            tf.keras.layers.InputLayer(input_shape=(image_dim, image_dim, 3)),
-            tf.keras.layers.Conv2D(
-            filters=64, kernel_size=kernelsize, strides=(2, 2), use_bias=False, activation='relu'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Conv2D(
-            filters=32, kernel_size=kernelsize, strides=(2, 2), use_bias=False, activation='relu'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Conv2D(
-            filters=16, kernel_size=kernelsize, strides=(2, 2), use_bias=False, activation='relu'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Flatten(),
-            # No activation
-            tf.keras.layers.Dense(latent_dim + latent_dim),
-            ]
-        )
+        if loader == None:
+            self.inference_net = tf.keras.Sequential(
+                [
+                tf.keras.layers.Conv2D(
+                filters=64, kernel_size=kernelsize, strides=(2, 2), use_bias=False, activation='relu', input_shape=(image_dim, image_dim, 3)),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Conv2D(
+                filters=32, kernel_size=kernelsize, strides=(2, 2), use_bias=False, activation='relu'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Conv2D(
+                filters=16, kernel_size=kernelsize, strides=(2, 2), use_bias=False, activation='relu'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Flatten(),
+                # No activation
+                tf.keras.layers.Dense(latent_dim + latent_dim),
+                ]
+            )
 
-        self.generative_net = tf.keras.Sequential(
-        [
-            tf.keras.layers.InputLayer(input_shape=(latent_dim,)),
-            tf.keras.layers.Dense(units=((image_dim//8)**2)*32, activation=tf.nn.relu),
-            tf.keras.layers.Reshape(target_shape=(image_dim//8, image_dim//8, 32)),
-            tf.keras.layers.Conv2DTranspose(
-            filters=16,
-            kernel_size=kernelsize,
-            strides=(2, 2),
-            use_bias=False,
-            padding="SAME",
-            activation='relu'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Conv2DTranspose(
-            filters=32,
-            kernel_size=kernelsize,
-            strides=(2, 2),
-            use_bias=False,
-            padding="SAME",
-            activation='relu'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Conv2DTranspose(
-            filters=64,
-            kernel_size=kernelsize,
-            strides=(2, 2),
-            use_bias=False,
-            padding="SAME",
-            activation='relu'),
-            tf.keras.layers.BatchNormalization(),
-            # No activation
-            tf.keras.layers.Conv2DTranspose(
-            filters=3,
-            kernel_size=3, strides=(1, 1), padding="SAME", activation='sigmoid'),
-        ]
-        )
+            self.generative_net = tf.keras.Sequential(
+            [
+                tf.keras.layers.Dense(units=((image_dim//8)**2)*32, activation=tf.nn.relu, input_shape=(latent_dim,)),
+                tf.keras.layers.Reshape(target_shape=(image_dim//8, image_dim//8, 32)),
+                tf.keras.layers.Conv2DTranspose(
+                filters=16,
+                kernel_size=kernelsize,
+                strides=(2, 2),
+                use_bias=False,
+                padding="SAME",
+                activation='relu'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Conv2DTranspose(
+                filters=32,
+                kernel_size=kernelsize,
+                strides=(2, 2),
+                use_bias=False,
+                padding="SAME",
+                activation='relu'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Conv2DTranspose(
+                filters=64,
+                kernel_size=kernelsize,
+                strides=(2, 2),
+                use_bias=False,
+                padding="SAME",
+                activation='relu'),
+                tf.keras.layers.BatchNormalization(),
+                # No activation
+                tf.keras.layers.Conv2DTranspose(
+                filters=3,
+                kernel_size=3, strides=(1, 1), padding="SAME", activation='sigmoid'),
+            ]
+            )
+
+        if loader:
+            self.inference_net = tf.keras.models.load_model(loader+'/inf')
+            self.generative_net = tf.keras.models.load_model(loader+'/gen')
 
         # Create a separate network for calculating loss, it receives the same updates
         # as the inference net. They should always be equal.
@@ -100,3 +102,10 @@ class VAE(tf.keras.Model):
                     rv.append(x)
                 if len(rv) == len(self.selected_layers):
                     return rv
+
+    def saver(self, DIR, tag):
+        directory = './{}/{}'.format(DIR, tag)
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+        self.inference_net.save(directory+'/inf', save_format='h5')
+        self.generative_net.save(directory+'/gen', save_format='h5')
