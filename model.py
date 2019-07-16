@@ -1,4 +1,5 @@
 import tensorflow as tf
+import os
 
 
 # got some model ideas from here https://medium.com/@jonathan_hui/gan-dcgan-deep-convolutional-generative-adversarial-networks-df855c438f
