@@ -1,4 +1,5 @@
 import tensorflow as tf
+import os
 
 
 # got some model ideas from here https://medium.com/@jonathan_hui/gan-dcgan-deep-convolutional-generative-adversarial-networks-df855c438f
@@ -95,3 +96,10 @@ class VAE(tf.keras.Model):
                     rv.append(x_r)
                 if len(rv) == len(self.selected_layers):
                     return rv
+
+    def saver(self, DIR, tag):
+        directory = './{}/{}'.format(DIR, tag)
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+        self.inference_net.save(directory+'/inf', save_format='h5')
+        self.generative_net.save(directory+'/gen', save_format='h5')
