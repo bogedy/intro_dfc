@@ -4,7 +4,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 ###########  Parameters  ############
 #folder to save weights and images
-DIR = 'experiment15'
+DIR = 'experiment18'
 BATCH_SIZE = 128
 image_size = 192
 epochs = 50
@@ -18,14 +18,13 @@ log_freq = 100
 kernelsize = 5
 mode = 'vae'
 model = VAE(latent_dim, image_size, mode, kernelsize)
-scales = {'kl_loss': 1e5}
+scales = {'rc_loss': 1e5}
 #####################################
 
 #input the celeb faces directory relative to the cwd
 image_dir='../img_align_celeba'
 
 all_image_paths=get_paths(image_dir)
-#train_paths=all_image_paths[:-20000]
 train_paths=all_image_paths[:-20000]
 test_paths=all_image_paths[-20000:]
 #train set defined in the loop for shuffling
