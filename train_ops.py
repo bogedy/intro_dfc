@@ -72,7 +72,7 @@ def compute_loss(model, x, mode, scales, test=False):
         rv['x']=x
         rv['x_r']=x_r
     return rv
-'''
+
 @tf.function
 def train_step(batch, model, optimizer, opt2, opt3, mode, scales):
     with tf.GradientTape(persistent=True) as tape:
@@ -84,15 +84,7 @@ def train_step(batch, model, optimizer, opt2, opt3, mode, scales):
     if mode == 'dfc' or mode == 'combo':
         opt3.apply_gradients(zip(inf_gradients, model.percep_net.trainable_variables))
     return loss_dict
-'''
 
-@tf.function
-def train_step(batch, model, optimizer, opt2, opt3, mode, scales):
-    with tf.GradientTape() as tape:
-        loss_dict = compute_loss(model, batch, mode, scales)
-    gradients = tape.gradient(loss_dict['total_loss'], model.trainable_variables)
-    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-    return loss_dict
 
 # Use a class to create tf.variables on call for AutoGraph
 class test:
