@@ -25,6 +25,7 @@ def compute_loss(model, x, mode, scales, test=False):
 
     # Regularization term (KL divergence)
     kl_loss = -0.5 * tf.reduce_sum(1 + logvar - tf.square(mean) - tf.exp(logvar), axis=-1)
+    kl_loss = tf.reduce_mean(kl_loss)
     if 'kl_loss' in scales.keys(): kl_loss *= scales['kl_loss']
     rv['kl_loss']=kl_loss
 
@@ -32,10 +33,10 @@ def compute_loss(model, x, mode, scales, test=False):
     if mode == 'vae':
         # Reconstruction loss
         rc_loss = mse(x, x_r)
+        rc_loss = tf.reduce_mean(rc_loss)
         if 'rc_loss' in scales.keys(): rc_loss *= scales['rc_loss']
         rv['rc_loss']=rc_loss
-        # Average over mini-batch and balance the losses
-        total_loss = tf.reduce_mean(rc_loss + kl_loss)
+        total_loss = rc_loss + kl_loss
 
     if mode == 'dfc':
         # get deep features
@@ -44,33 +45,37 @@ def compute_loss(model, x, mode, scales, test=False):
         # Perceptual loss
         perceptual_losses = [mse(original, reconstructed) for original, reconstructed in zip(outputs, outputs_r)]
         for layer, loss in zip(model.selected_layers, perceptual_losses):
+            loss = tf.reduce_mean(loss)
             if layer in scales.keys(): loss*=scales[layer]
             rv[layer]=loss
         percep_loss = sum([rv[layer] for layer in model.selected_layers])
         if 'percep_loss' in scales.keys(): percep_loss *= scales['percep_loss']
         rv['percep_loss']=percep_loss
-        total_loss = tf.reduce_mean(percep_loss + kl_loss)
+        total_loss = percep_loss + kl_loss
 
     if mode == 'combo':
         outputs = model.get_features(x)
         outputs_r = model.get_features(x_r)
         perceptual_losses = [mse(original, reconstructed) for original, reconstructed in zip(outputs, outputs_r)]
         for layer, loss in zip(model.selected_layers, perceptual_losses):
+            loss = tf.reduce_mean(loss)
             if layer in scales.keys(): loss*=scales[layer]
             rv[layer]=loss
-        percep_loss = sum(perceptual_losses)
+        percep_loss = sum([rv[layer] for layer in model.selected_layers])
         if 'percep_loss' in scales.keys(): percep_loss *= scales['percep_loss']
         rv['percep_loss']=percep_loss
         rc_loss = mse(x, x_r)
+        rc_loss = tf.reduce_mean(rc_loss)
         if 'rc_loss' in scales.keys(): rc_loss *= scales['rc_loss']
         rv['rc_loss']=rc_loss
-        total_loss = tf.reduce_mean(percep_loss + rc_loss + kl_loss)
+        total_loss = percep_loss + rc_loss + kl_loss
 
     rv['total_loss']=total_loss
 
     if test:
         rv['x']=x
         rv['x_r']=x_r
+
     return rv
 
 @tf.function
