@@ -92,8 +92,8 @@ class test:
         #testing metrics
         self.metric_dict = {key: tf.metrics.Mean() for key in loss_dict}
         self.losses_dict = loss_dict
-        self.losses_dict['x']=tf.zeros(shape=(loss_dict['kl_loss'].shape[0], image_size, image_size, 3))
-        self.losses_dict['x_r']=tf.zeros(shape=(loss_dict['kl_loss'].shape[0], image_size, image_size, 3))
+        self.losses_dict['x']=tf.zeros(shape=(1, image_size, image_size, 3))
+        self.losses_dict['x_r']=tf.zeros(shape=(1, image_size, image_size, 3))
 
     @tf.function
     def __call__(self, model, test_set, step, mode, scales):
