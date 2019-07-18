@@ -37,7 +37,7 @@ def compute_loss(model, x, mode, scales, test=False):
         # Average over mini-batch and balance the losses
         total_loss = tf.reduce_mean(rc_loss + kl_loss)
 
-    if mode == 'dfc':
+    if mode == 'dfc' or mode == 'fixed':
         # get deep features
         outputs = model.get_features(x)
         outputs_r = model.get_features(x_r)
