@@ -95,18 +95,18 @@ class test:
         self.losses_dict['x']=tf.zeros(shape=(loss_dict['kl_loss'].shape[0], image_size, image_size, 3))
         self.losses_dict['x_r']=tf.zeros(shape=(loss_dict['kl_loss'].shape[0], image_size, image_size, 3))
 
-    @tf.function
+    #@tf.function
     def __call__(self, model, test_set, step, mode, scales):
-        with tf.device('/gpu:0'):
-            for batch in test_set:
-                self.losses_dict = compute_loss(model, batch, mode, scales, test=True)
-                for loss, metric in self.metric_dict.items():
-                    metric.update_state(self.losses_dict[loss])
+        #with tf.device('/gpu:0'):
+        for batch in test_set:
+            self.losses_dict = compute_loss(model, batch, mode, scales, test=True)
+            for loss, metric in self.metric_dict.items():
+                metric.update_state(self.losses_dict[loss])
         rv = self.metric_dict['total_loss'].result()
         for loss, metric in self.metric_dict.items():
             tf.summary.scalar(loss, metric.result(), step=step)
             metric.reset_states()
-        with tf.device('/cpu:0'):
-            tf.summary.image('input', self.losses_dict['x'], step = step, max_outputs=3)
-            tf.summary.image('output', self.losses_dict['x_r'], step = step, max_outputs=3)
+        #with tf.device('/cpu:0'):
+        tf.summary.image('input', self.losses_dict['x'], step = step, max_outputs=3)
+        tf.summary.image('output', self.losses_dict['x_r'], step = step, max_outputs=3)
         return rv
