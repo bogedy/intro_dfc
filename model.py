@@ -77,11 +77,11 @@ class VAE(tf.keras.Model):
             assert fixed_net != None
             self.percep_net = tf.keras.models.load_model(fixed_net+'/inf')
 
-        # if no layers are specififed, use the first two convolution layers
+        # if no layers are specififed, use the last two convolution layers
         if selected_layers:
             self.selected_layers = selected_layers
         else:
-            self.selected_layers = [layer.name for layer in self.inference_net.layers if layer.name.startswith('conv')][:2]
+            self.selected_layers = [layer.name for layer in self.inference_net.layers if layer.name.startswith('conv')][-2:]
 
     @tf.function
     def encode(self, x):
