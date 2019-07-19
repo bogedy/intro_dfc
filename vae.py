@@ -15,9 +15,9 @@ optimizer = tf.optimizers.Adam(lr)
 opt2 = tf.optimizers.Adam(lr)
 opt3 = tf.optimizers.Adam(lr)
 log_freq = 100
-kernelsize = 5
+kernelsize = 3
 # mode is one of: vae, dfc, combo, fixed, latent
-mode = 'vae'
+mode = 'latent'
 model = VAE(latent_dim, image_size, mode, kernelsize)
 scales = {'rc_loss': 1e5}
 #####################################

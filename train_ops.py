@@ -66,6 +66,14 @@ def compute_loss(model, x, mode, scales, test=False):
         rv['rc_loss']=rc_loss
         total_loss = tf.reduce_mean(percep_loss + rc_loss + kl_loss)
 
+    if mode == 'latent':
+        latent_x = model.percep_latent(x)
+        latent_xr = model.percep_latent(x_r)
+        percep_loss = tf.losses.MSE(latent_x, latent_xr)
+        if 'percep_loss' in scales.keys(): percep_loss *= scales['percep_loss']
+        rv['percep_loss']=percep_loss
+        total_loss = tf.reduce_mean(percep_loss + kl_loss)
+
     rv['total_loss']=total_loss
 
     if test:

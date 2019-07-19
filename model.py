@@ -8,7 +8,7 @@ import os
 
 # image dim must be divisible by 8
 class VAE(tf.keras.Model):
-    def __init__(self, latent_dim, image_dim, mode, kernelsize=3, selected_layers = None, loader = None, fixed_net = None):
+    def __init__(self, latent_dim, image_dim, mode, kernelsize=3, selected_layers = None, loader = None, percep_dir = None):
         super(VAE, self).__init__()
         if loader == None:
             self.inference_net = tf.keras.Sequential(
@@ -73,9 +73,9 @@ class VAE(tf.keras.Model):
             self.percep_net = tf.keras.models.clone_model(self.inference_net)
             self.percep_net.set_weights(self.inference_net.get_weights())
 
-        if mode == 'fixed':
-            assert fixed_net != None
-            self.percep_net = tf.keras.models.load_model(fixed_net+'/inf')
+        if mode == 'fixed' or mode == 'latent':
+            assert percep_dir != None
+            self.percep_net = tf.keras.models.load_model(percep_dir+'/inf')
 
         # if no layers are specififed, use the last two convolution layers
         if selected_layers:
@@ -107,6 +107,10 @@ class VAE(tf.keras.Model):
                     rv.append(x)
                 if len(rv) == len(self.selected_layers):
                     return rv
+
+    @tf.function
+    def percep_latent(self, x):
+        return self.percep_net(x)
 
     def saver(self, DIR, tag):
         directory = './{}/{}'.format(DIR, tag)
