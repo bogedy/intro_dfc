@@ -74,6 +74,17 @@ def compute_loss(model, x, mode, scales, test=False):
         rv['percep_loss']=percep_loss
         total_loss = tf.reduce_mean(percep_loss + kl_loss)
 
+    if mode == 'noise':
+        latent_x = tf.concat([mean, logvar], axis=1)
+        latent_xr = model.percep_latent(x_r)
+        percep_loss = tf.losses.MSE(latent_x, latent_xr)
+        if 'percep_loss' in scales.keys(): percep_loss *= scales['percep_loss']
+        rv['percep_loss']=percep_loss
+        variation = tf.image.total_variation(x_r)
+        if 'variaiton' in scales.keys(): variation *= scales['variation']
+        rv['variation']=variation
+        total_loss = tf.reduce_mean(percep_loss + variation + kl_loss)
+
     rv['total_loss']=total_loss
 
     if test:

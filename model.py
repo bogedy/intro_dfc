@@ -73,7 +73,7 @@ class VAE(tf.keras.Model):
             self.percep_net = tf.keras.models.clone_model(self.inference_net)
             self.percep_net.set_weights(self.inference_net.get_weights())
 
-        if mode == 'fixed' or mode == 'latent':
+        if mode in ['fixed', 'latent', 'noise']:
             assert percep_dir != None
             self.percep_net = tf.keras.models.load_model(percep_dir+'/inf')
 
