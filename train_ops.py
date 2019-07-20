@@ -75,9 +75,13 @@ def compute_loss(model, x, mode, scales, test=False):
         total_loss = tf.reduce_mean(percep_loss + kl_loss)
 
     if mode == 'noise':
-        latent_x = tf.concat([mean, logvar], axis=1)
-        latent_xr = model.percep_latent(x_r)
-        percep_loss = tf.losses.MSE(latent_x, latent_xr)
+        outputs = model.get_features(x)
+        outputs_r = model.get_features(x_r)
+        perceptual_losses = [mse(original, reconstructed) for original, reconstructed in zip(outputs, outputs_r)]
+        for layer, loss in zip(model.selected_layers, perceptual_losses):
+            if layer in scales.keys(): loss*=scales[layer]
+            rv[layer]=loss
+        percep_loss = sum(perceptual_losses)
         if 'percep_loss' in scales.keys(): percep_loss *= scales['percep_loss']
         rv['percep_loss']=percep_loss
         variation = tf.image.total_variation(x_r)
