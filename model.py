@@ -8,13 +8,13 @@ import os
 
 # image dim must be divisible by 8
 class VAE(tf.keras.Model):
-    def __init__(self, latent_dim, image_dim, mode, kernelsize=3, selected_layers = None, loader = None, percep_dir = None):
+    def __init__(self, latent_dim, image_dim, mode, kernelsize=3, channels=3, selected_layers = None, loader = None, percep_dir = None):
         super(VAE, self).__init__()
         if loader == None:
             self.inference_net = tf.keras.Sequential(
                 [
                 tf.keras.layers.Conv2D(
-                filters=64, kernel_size=kernelsize, strides=(2, 2), use_bias=False, activation='relu', input_shape=(image_dim, image_dim, 3)),
+                filters=64, kernel_size=kernelsize, strides=(2, 2), use_bias=False, activation='relu', input_shape=(image_dim, image_dim, channels)),
                 tf.keras.layers.BatchNormalization(),
                 tf.keras.layers.Conv2D(
                 filters=32, kernel_size=kernelsize, strides=(2, 2), use_bias=False, activation='relu'),
@@ -58,8 +58,8 @@ class VAE(tf.keras.Model):
                 tf.keras.layers.BatchNormalization(),
                 # No activation
                 tf.keras.layers.Conv2DTranspose(
-                filters=3,
-                kernel_size=3, strides=(1, 1), padding="SAME", activation='sigmoid'),
+                filters=channels,
+                kernel_size=kernelsize, strides=(1, 1), padding="SAME", activation='sigmoid'),
             ]
             )
 

@@ -1,4 +1,5 @@
 from train_ops import *
+import numpy as np
 
 #os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
@@ -6,7 +7,7 @@ from train_ops import *
 #folder to save weights and images
 DIR = 'experimentmnist'
 BATCH_SIZE = 128
-image_size = 192
+image_size = 28
 epochs = 50
 latent_dim = 50
 lr = 1e-4
@@ -20,7 +21,7 @@ kernelsize = 3
 mode = 'vae'
 # data is one of: mnist, celeba
 data = 'mnist'
-model = VAE(latent_dim, image_size, mode, kernelsize)
+model = VAE(latent_dim, image_size, mode, kernelsize, channels=1)
 scales = {'rc_loss': 1e5}
 #####################################
 
@@ -35,10 +36,10 @@ if data == 'celeba':
 
 if data == 'mnist':
     (train_images, _), (test_images, _) = tf.keras.datasets.mnist.load_data()
-    train_images /= 255.
-    test_images /= 255.
+    train_images = tf.expand_dims(tf.constant(train_images, dtype=tf.float32), axis=3)
+    test_images = tf.expand_dims(tf.constant(train_images, dtype=tf.float32), axis=3)
     TRAIN_BUF = 60000
-    BATCH_SIZE = 128
+    BATCH_SIZE = 100
     TEST_BUF = 10000
     train_set = tf.data.Dataset.from_tensor_slices(train_images).shuffle(TRAIN_BUF).batch(BATCH_SIZE)
     test_set = tf.data.Dataset.from_tensor_slices(test_images).shuffle(TEST_BUF).batch(BATCH_SIZE)
@@ -55,7 +56,7 @@ train_summary_writer = tf.summary.create_file_writer(train_dir)
 test_summary_writer = tf.summary.create_file_writer(test_dir)
 
 for epoch in range(1,epochs+1):
-    if data='celeba':
+    if data=='celeba':
         train_set= from_path_to_tensor(train_paths, BATCH_SIZE, size=image_size)
     start_time = time.time()
     for i, batch in enumerate(train_set):
