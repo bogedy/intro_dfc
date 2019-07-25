@@ -1,3 +1,5 @@
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
+
 from model import *
 from train_ops import *
 import tensorflow as tf
