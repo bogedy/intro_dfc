@@ -1,13 +1,13 @@
 from train_ops import *
 import numpy as np
 
-#os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 ###########  Parameters  ############
 #folder to save weights and images
-DIR = 'experimentmnist'
+DIR = 'experiment26'
 BATCH_SIZE = 128
-image_size = 28
+image_size = 192
 epochs = 50
 latent_dim = 50
 lr = 1e-4
@@ -18,11 +18,11 @@ opt3 = tf.optimizers.Adam(lr)
 log_freq = 100
 kernelsize = 3
 # mode is one of: vae, dfc, combo, fixed, latent
-mode = 'vae'
+mode = 'combo'
 # data is one of: mnist, celeba
-data = 'mnist'
-model = VAE(latent_dim, image_size, mode, kernelsize, channels=1)
-scales = {'rc_loss': 1e5}
+data = 'celeba'
+model = VAE(latent_dim, image_size, mode, kernelsize)
+scales = {'rc_loss': 1e4, 'percep_loss': 1e6}
 #####################################
 
 if data == 'celeba':
@@ -78,3 +78,9 @@ for epoch in range(1,epochs+1):
             'time elapsed for current epoch: {:.2f}'.format((time.time() - start_time)/60), 'minutes')
     if epoch % 10 == 0:
         model.saver(DIR, epoch)
+
+rand_im = tf.random.normal(shape=(1,192,192,3))
+
+_ = compute_loss(model, rand_im, mode, scales)
+
+tf.saved_model.save(model, './{}/savedmodel'.format(DIR))
