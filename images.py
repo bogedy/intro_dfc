@@ -1,8 +1,8 @@
-from model.py import *
+from model import *
 from train_ops import *
 import tensorflow as tf
 
-model = VAE(latent_dim, image_size, mode, kernelsize, loader='experiment18/50')
+model = VAE(50, 192, 'vae', 3, loader='experiment18/50')
 
 rand_im = tf.random.normal(shape=(1,192,192,3))
 
