@@ -17,12 +17,12 @@ opt2 = tf.optimizers.Adam(lr)
 opt3 = tf.optimizers.Adam(lr)
 log_freq = 100
 kernelsize = 3
-# mode is one of: vae, dfc, combo, fixed, latent
+# mode is one of: vae, dfc, combo, fixed, latent, beta
 mode = 'combo'
 # data is one of: mnist, celeba
 data = 'celeba'
 model = VAE(latent_dim, image_size, mode, kernelsize)
-scales = {'rc_loss': 1e4, 'percep_loss': 1e6}
+scales = {'kl_loss': 100, 'percep_loss': 1e6}
 #####################################
 
 if data == 'celeba':
@@ -60,7 +60,13 @@ for epoch in range(1,epochs+1):
         train_set= from_path_to_tensor(train_paths, BATCH_SIZE, size=image_size)
     start_time = time.time()
     for i, batch in enumerate(train_set):
-        loss_dict = train_step(batch, model, optimizer, opt2, opt3, mode, scales)
+        if epoch==1 and i<100:
+            first_scales=scales
+            first_scales['rc_loss']=1e4
+            first_scales['kl_loss']=1
+            loss_dict = train_step(batch, model, optimizer, opt2, opt3, mode, first_scales)
+        else:
+            loss_dict = train_step(batch, model, optimizer, opt2, opt3, mode, scales)
         if i==0:
             metrics_dict = {key: tf.metrics.Mean() for key in loss_dict}
         for loss, value in loss_dict.items():
