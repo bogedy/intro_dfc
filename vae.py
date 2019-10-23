@@ -1,15 +1,15 @@
 from train_ops import *
 import numpy as np
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+#os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 ###########  Parameters  ############
 #folder to save weights and images
-DIR = 'experiment26'
+DIR = 'experimentbeta'
 BATCH_SIZE = 128
 image_size = 192
 epochs = 40
-latent_dim = 50
+latent_dim = 25
 lr = 1e-4
 optimizer = tf.optimizers.Adam(lr)
 # Extra optimizers for deep feature training
@@ -60,7 +60,7 @@ for epoch in range(1,epochs+1):
         train_set= from_path_to_tensor(train_paths, BATCH_SIZE, size=image_size)
     start_time = time.time()
     for i, batch in enumerate(train_set):
-        if epoch==1 and i<100:
+        if epoch==1 and i<50:
             first_scales=scales
             first_scales['rc_loss']=1e4
             first_scales['kl_loss']=1
