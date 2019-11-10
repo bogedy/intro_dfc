@@ -31,7 +31,7 @@ if data == 'celeba':
     all_image_paths=get_paths(image_dir)
     train_paths=all_image_paths[:-20000]
     test_paths=all_image_paths[-20000:]
-    #train set defined in the loop for shuffling
+    train_set= from_path_to_tensor(train_paths, BATCH_SIZE, size=image_size)
     test_set=from_path_to_tensor(test_paths, BATCH_SIZE, size=image_size)
 
 if data == 'mnist':
@@ -56,8 +56,8 @@ train_summary_writer = tf.summary.create_file_writer(train_dir)
 test_summary_writer = tf.summary.create_file_writer(test_dir)
 
 for epoch in range(1,epochs+1):
-    if data=='celeba':
-        train_set= from_path_to_tensor(train_paths, BATCH_SIZE, size=image_size)
+    if epoch != 1:
+        train_set=train_set.shuffle(5000)
     start_time = time.time()
     for i, batch in enumerate(train_set):
         if epoch==1 and i<50:
