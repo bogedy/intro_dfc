@@ -11,7 +11,7 @@ todo:
 * ~~Clean the code~~ more or less done
 * ~~learn how to take advantage of multiple GPUs~~ eh, that was overrated anyways
 * ~~Train my normal VAE~~ Done!
-* Actually implement it
+* ~~Actually implement it~~ Done! It doesn't work very well yet. But it works.
 
 resources used:
 * https://www.tensorflow.org/beta/tutorials/generative/cvae
